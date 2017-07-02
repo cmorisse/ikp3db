@@ -5,11 +5,15 @@
 # Copyright (c) 2016, 2017 by Cyril MORISSE, Audaxis
 # Licence: MIT. See LICENCE at repository root
 #
-
+import sys
 from setuptools import setup, find_packages, Extension
 
 name = 'ikp3db'
 version = '1.0'
+
+
+if sys.version_info[:2] != (3,6):
+    sys.exit('Sorry, IKPdb only supports Python 3.6.x for now.')
 
 
 long_description = (
@@ -27,7 +31,7 @@ setup(
     license='MIT',
     author='Cyril MORISSE, Audaxis',
     author_email='cmorisse@boxes3.net',
-    description="A hackable CPython remote debugger designed for the Web and online IDE integration.",
+    description="A hackable CPython 3.6+ remote debugger designed for the Web and online IDE integration. Fork of IKPdb.",
     long_description = long_description,
     keywords = "debugger debug remote tcp",
     include_package_data=True,

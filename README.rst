@@ -1,6 +1,7 @@
 A hackable CPython remote debugger designed for integration with the latest generation of Javascript editor / IDE (eg. Cloud9, Atom, VS Code)
 =============================================================================================================================================
 
+**IKP3db is an IKPdb fork that supports Python 3 only.**
 
 Features
 --------
@@ -9,23 +10,40 @@ Features
 * Conditional breakpoints
 * Variables hot modifications
 * "Turbo mode"
-* easy integration in frameworks
+* easy integration in javascripts frameworks / editors
 
-Installation
-------------
+Installation from pypi
+----------------------
+
+When it will be published, you will be able the latest stable version from pypi using:
 
 .. code-block:: bash
 
-   $ pip install ikpdb
+   $ pip3 install ikp3db
 
 Installation from sources
 _________________________
 
-Git clone from the official repository then install with one of these:
+Install using one of these:
 
 .. code-block:: bash
 
-   $ pip install git+git://github.com/audaxis/ikpdb.git@1.0.x  # 1.0.x is the branch name
+   $ pip3 install git+https://github.com/cmorisse/ikp3db.git@1.x#egg=ikp3db  # 1.x is the branch name
+   $ pip3 install git+https://github.com/cmorisse/ikp3db.git#egg=ikp3db  # from master
+
+IKP3db sources will be installed in ./ikp3db_src/ikp3db
+
+Installation from sources to contribute
+_______________________________________
+
+Git clone and install using one of these:
+
+.. code-block:: bash
+
+   $ pip3 install --src ./ikp3db_src -e git+https://github.com/cmorisse/ikp3db.git@1.x#egg=ikp3db  # 1.x is the branch name
+   $ pip3 install --src ./ikp3db_src -e git+https://github.com/cmorisse/ikp3db.git#egg=ikp3db  # from master
+
+IKP3db sources will be installed in ./ikp3db_src/ikp3db
 
 
 .. _getting-started:
@@ -33,12 +51,14 @@ Git clone from the official repository then install with one of these:
 Getting started
 ---------------
 
-Cloud9 is our debugger client reference implementation so head 
+Cloud9 is IKP3db debugger client reference implementation so head 
 to `Cloud9 <https://c9.io/>`_, create an account there then refer to the Getting
 Started section of `IKPdb documentation <https://ikpdb.readthedocs.io/>`_.
 
 Documentation
 -------------
+
+IKP3db is the Python 3 version of IKPdb ; for now there is only one documentation.
 
 https://ikpdb.readthedocs.io/
 
@@ -46,14 +66,14 @@ https://ikpdb.readthedocs.io/
 Requirements
 ------------
 
-CPython 2.7.
+CPython 3.6.x
 
 A C compiler (eg. python-dev Debian package, xcode tools on macOS).
 
 License
 -------
 
-``IKPdb`` is licensed under the MIT License.
+``IKP3db`` is licensed under the MIT License.
 See the License paragraph in the documentation.
 
 Source code
@@ -61,7 +81,7 @@ Source code
 
 Source code is available on github:
 
-https://github.com/audaxis/ikpdb
+https://github.com/cmorisse/ikp3db
 
 
 Issues
