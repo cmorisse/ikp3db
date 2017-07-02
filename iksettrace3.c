@@ -8,24 +8,20 @@
  * Licence: MIT. See LICENCE at repository root
  */
 
-/* 
- * Define prototype of needed functions from Python-3.x.x/Python/sysmodule.c
- */
-
-
-// 
 static long debuggerThreadIdent = 0;  // Track debugger thread ident
 
 
+/* 
+ * Redefine needed static functions from Python-3.x.x/Python/sysmodule.c
+ */
 
 /*
  * Cached interned string objects used for calling the profile and
  * trace functions.  Initialized by trace_init().
  */
-//static PyObject *whatstrings[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static PyObject *whatstrings[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
-extern int trace_init(void);
-/*
+static int trace_init(void)
 {
     static const char * const whatnames[7] = {
         "call", "exception", "line", "return",
@@ -43,11 +39,10 @@ extern int trace_init(void);
     }
     return 0;
 }
-*/
-extern PyObject *
+
+static PyObject *
 call_trampoline(PyObject* callback,
-                PyFrameObject *frame, int what, PyObject *arg);
-/*
+                PyFrameObject *frame, int what, PyObject *arg)
 {
     PyObject *result;
     PyObject *stack[3];
@@ -59,9 +54,7 @@ call_trampoline(PyObject* callback,
     stack[0] = (PyObject *)frame;
     stack[1] = whatstrings[what];
     stack[2] = (arg != NULL) ? arg : Py_None;
-*/
     /* call the Python-level function */
-/*
     result = _PyObject_FastCall(callback, stack, 3);
 
     PyFrame_LocalsToFast(frame, 1);
@@ -71,11 +64,10 @@ call_trampoline(PyObject* callback,
 
     return result;
 }
-*/
-extern int
+
+static int
 trace_trampoline(PyObject *self, PyFrameObject *frame,
-                 int what, PyObject *arg);
-/*
+                 int what, PyObject *arg)
 {
     PyObject *callback;
     PyObject *result;
@@ -100,7 +92,11 @@ trace_trampoline(PyObject *self, PyFrameObject *frame,
     }
     return 0;
 }
-*/
+
+
+/* 
+ * iksettrace3 'real' functions
+ */
 
 void
 IK_SetTrace(Py_tracefunc func, PyObject *arg)
