@@ -25,7 +25,7 @@ iksettrace3_module = Extension('iksettrace3', sources=['iksettrace3.c'])
 setup(
     name = name,
     version = version,
-    #packages = find_packages('src'),
+    #packages = find_packages('src'),  # We use py_modules below
     py_modules = ['ikp3db'],
     #package_dir={'': 'src'},
     license='MIT',
@@ -36,11 +36,6 @@ setup(
     keywords = "debugger debug remote tcp",
     include_package_data=True,
     url = 'https://github.com/cmorisse/ikp3db',
-    
-    # files will be hosted on index
-    #download_url = 'https://github.com/cmorisse/ikpdb/archive/1.0.x.zip', 
-    
-    #install_requires=['setuptools',],
     classifiers=[
         #'Framework :: Buildout',
         'Development Status :: 4 - Beta',
@@ -52,10 +47,4 @@ setup(
         'Natural Language :: English',
      ],
      ext_modules=[iksettrace3_module]
-#    ,entry_points={
-#        'console_scripts': [
-#            'ikpdb=ikpdb:main',
-#        ],
-#    },     
-
 )
