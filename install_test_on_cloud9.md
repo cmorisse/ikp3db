@@ -13,7 +13,7 @@
 
 This installs IKPdb in a python3.6 virtualenv (py36/src/ikpdb)
 
-    cd .. # Leave ./Python-3.6.1 and go back to worksaace root
+    cd .. # Leave ./Python-3.6.1 and go back to workspace root
     sudo pip3 install virtualenv
     virtualenv py36
     source py36/bin/activate
