@@ -584,7 +584,7 @@ class IKPdb(object):
         self.stop_at_first_statement = True if stop_at_first_statement else False
         
         # Some parameters that may need to become cli options
-        self.CGI_ESCAPE_EVALUATE_OUTPUT = True
+        self.CGI_ESCAPE_EVALUATE_OUTPUT = False
 
 
     def canonic(self, file_name):
