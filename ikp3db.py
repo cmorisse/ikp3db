@@ -563,7 +563,7 @@ class IKPdb(object):
         self.mainpyfile = ''
         self._active_breakpoint_lock = threading.Lock()
         self._active_thread_lock = threading.Lock()
-        self._resume_command_q = queue.Queue(maxsize=1)
+        self._command_q = queue.Queue(maxsize=1)
 
         # tracing is disabled until required 
         self.execution_started = False
@@ -1082,25 +1082,71 @@ class IKPdb(object):
                            warning_messages=warning_messages,
                            exception=exception)
                            
-        # Waits for command to resume among:
-        # - resume
-        # - step over
-        # - step into
-        # - step out
-        # then resume execution
-        resume_command = self._resume_command_q.get()
-        if resume_command == 'resume':
-            self.setup_resume()
-        elif resume_command == 'stepOver':
-            self.setup_step_over(frame)
-        elif resume_command == 'stepInto':
-            self.setup_step_into(frame)
-        elif resume_command == 'stepOut':
-            self.setup_step_out(frame)
-        else:
-            _logger.x_critical("Unknown resume command: %s" % resume_command)
-            raise IKPdbQuit()
+        # Enter a loop to process commands sent by client
+        while True:
+            command = self._command_q.get()
+            if command['cmd'] == 'resume':
+                self.setup_resume()
+                break
             
+            elif command['cmd'] == 'stepOver':
+                self.setup_step_over(frame)
+                break
+            
+            elif command['cmd'] == 'stepInto':
+                self.setup_step_into(frame)
+                break
+            
+            elif command['cmd'] == 'stepOut':
+                self.setup_step_out(frame)
+                break
+            
+            elif command['cmd'] == 'evaluate':
+                value, result_type = self.evaluate(command['frame'], 
+                                                   command['expression'], 
+                                                   command['global'], 
+                                                   disable_break=command['disableBreak'])
+                remote_client.reply(command['obj'], {'value': value, 'type': result_type})
+
+            elif command['cmd'] == 'getProperties':
+                error_messages = []
+                if command.get('id', False):
+                    po_value = ctypes.cast(command['id'], ctypes.py_object).value
+                    result={'properties': self.extract_object_properties(po_value) or []}
+                    command_exec_status = 'ok'
+                else:
+                    result={'properties': self.extract_object_properties(None) or []}
+                    command_exec_status = 'ok'
+                    
+                _logger.e_debug("    => %s", result)
+                remote_client.reply(command['obj'], result, 
+                                    command_exec_status=command_exec_status,
+                                    error_messages=error_messages)
+
+            elif command['cmd'] == 'setVariable':
+                error_messages = []
+                result = {}
+                command_exec_status = 'ok'
+                # TODO: Rework to use id now that we are in right thread context
+                err_message = self.let_variable(command['frame'], 
+                                                command['name'], 
+                                                command['value'])
+                if err_message:
+                    command_exec_status = 'error'
+                    msg = "setVariable(%s=%s) failed with error: %s" % (command['name'], 
+                                                                        command['value'],
+                                                                        err_message)
+                    error_messages = [msg]
+                    _logger.e_error(msg)
+                remote_client.reply(command['obj'], 
+                                    result,
+                                    command_exec_status=command_exec_status,
+                                    error_messages=error_messages)
+
+            else:
+                _logger.x_critical("Unknown command: %s received by _line_tracer()" % resume_command)
+                raise IKPdbQuit()
+
         self._active_breakpoint_lock.release()
         return
 
@@ -1448,39 +1494,23 @@ class IKPdb(object):
             
             elif command == "getProperties":
                 _logger.e_debug("getProperties(%s)", args)
-                error_messages = []
-                if args.get('id', False):
-                    po_value = ctypes.cast(args['id'], ctypes.py_object).value
-                    result={'properties': self.extract_object_properties(po_value) or []}
-                    command_exec_status = 'ok'
-                else:
-                    result={'properties': self.extract_object_properties(None) or []}
-                    command_exec_status = 'ok'
-                    
-                _logger.e_debug("    => %s", result)
-                remote_client.reply(obj, result, 
-                                    command_exec_status=command_exec_status,
-                                    error_messages=error_messages)
+                self._command_q.put({
+                    'cmd':'getProperties',
+                    'obj': obj,
+                    'id': args['id']
+                })
+                # reply will be done in _tracer() when result is available
 
             elif command == "setVariable":
                 _logger.e_debug("setVariable(%s)", args)
-                error_messages = []
-                result = {}
-                command_exec_status = 'ok'
-                err_message = self.let_variable(args['frame'], 
-                                                args['name'], 
-                                                args['value'])
-                if err_message:
-                    command_exec_status = 'error'
-                    msg = "setVariable(%s=%s) failed with error: %s" % (args['name'], 
-                                                                        args['value'],
-                                                                        err_message)
-                    error_messages = [msg]
-                    _logger.e_error(msg)
-                remote_client.reply(obj, 
-                                    result, 
-                                    command_exec_status=command_exec_status,
-                                    error_messages=error_messages)
+                self._command_q.put({
+                    'cmd':'setVariable',
+                    'obj': obj,
+                    'frame': args['frame'],
+                    'name': args['name'],  # TODO: Rework plugin to send var's id
+                    'value': args['value']
+                })
+                # reply will be done in _tracer() when result is available
 
             elif command == 'runScript':
                 _logger.x_debug("runScript(%s)", args)
@@ -1498,18 +1528,17 @@ class IKPdb(object):
             elif command == 'resume':
                 _logger.x_debug("resume(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._resume_command_q.put('resume')
-                #return 1
+                self._command_q.put({'cmd':'resume'})
 
             elif command == 'stepOver':  # <=> Pdb n(ext)
                 _logger.x_debug("stepOver(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._resume_command_q.put('stepOver')
+                self._command_q.put({'cmd':'stepOver'})
 
             elif command == 'stepInto':  # <=> Pdb s(tep)
                 _logger.x_debug("stepInto(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._resume_command_q.put('stepInto')
+                self._command_q.put({'cmd':'stepInto'})
 
             elif command == 'stepOut':  # <=> Pdb r(eturn)
                 _logger.x_debug("stepOut(%s)", args)
@@ -1518,12 +1547,16 @@ class IKPdb(object):
 
             elif command == 'evaluate':
                 _logger.e_debug("evaluate(%s)", args)
-                value, result_type = self.evaluate(args['frame'], 
-                                                   args['expression'], 
-                                                   args['global'], 
-                                                   disable_break=args['disableBreak'])
-                remote_client.reply(obj, {'value': value, 'type': result_type})
-
+                self._command_q.put({
+                    'cmd':'evaluate',
+                    'obj': obj,
+                    'frame': args['frame'],
+                    'expression': args['expression'],
+                    'global': args['global'],
+                    'disableBreak': args['disableBreak']
+                })
+                # reply will be done in _tracer() where result is available
+                
             elif command == '_InternalQuit':
                 # '_InternalQuit' is an IKPdb internal message, generated by 
                 # IKPdbConnectionHandler when a socket.error occured.
