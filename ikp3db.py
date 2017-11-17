@@ -782,11 +782,18 @@ class IKPdb(object):
         """
         MAX_STRING_LEN_TO_RETURN = 487
         t_value = repr(value)
-        r_value = "%s ... (truncated by ikpdb)" % (t_value[:MAX_STRING_LEN_TO_RETURN],) if len(t_value) > MAX_STRING_LEN_TO_RETURN else t_value
+        # convert all var names to string
         if isinstance(name, str):
             r_name = name
         else:
             r_name = repr(name)
+
+        if len(t_value) > MAX_STRING_LEN_TO_RETURN:
+            r_value = "%s ... (truncated by ikpdb)" % (t_value[:MAX_STRING_LEN_TO_RETURN],) 
+            r_name = "%s*" % r_name
+        else:
+            r_value = t_value
+            
         if isinstance(value, bytes):
             r_type = "%s [%s]" % (IKPdbRepr(value), len(value),)
         else:
