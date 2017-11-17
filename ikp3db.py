@@ -30,7 +30,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None 
-__version__ = "1.0"
+__version__ = "1.1"
 
 ##
 # Logging System
@@ -797,7 +797,7 @@ class IKPdb(object):
         """ dumps frames chain in a representation suitable for serialization 
            and remote (debugger) client usage.
         """
-        current_tread = threading.currentThread()
+        current_thread = threading.currentThread()
         frames = []
         frame_browser = frame
         
@@ -820,13 +820,13 @@ class IKPdb(object):
             # normalize path sent to debugging client
             file_path = self.normalize_path_out(frame_browser.f_code.co_filename)
 
-            frame_name = "%s() [%s]" % (frame_browser.f_code.co_name, current_tread.name,)
+            frame_name = "%s() [%s]" % (frame_browser.f_code.co_name, current_thread.name,)
             remote_frame = {
                 'id': id(frame_browser),
                 'name': frame_name,
                 'line_number': frame_browser.f_lineno,  # Warning 1 based
                 'file_path': file_path,
-                'thread': id(current_tread),
+                'thread': id(current_thread),
                 'f_locals': locals_vars_list
             }
             frames.append(remote_frame)
