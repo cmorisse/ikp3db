@@ -788,16 +788,18 @@ class IKPdb(object):
         else:
             r_name = repr(name)
 
+        # truncate value to limit data flow between ikpdb and client
         if len(t_value) > MAX_STRING_LEN_TO_RETURN:
             r_value = "%s ... (truncated by ikpdb)" % (t_value[:MAX_STRING_LEN_TO_RETURN],) 
-            r_name = "%s*" % r_name
+            r_name = "%s*" % r_name  # add a visual marker to truncated var's name
         else:
             r_value = t_value
             
-        if isinstance(value, bytes):
+        if isinstance(value, str):
             r_type = "%s [%s]" % (IKPdbRepr(value), len(value),)
         else:
             r_type = IKPdbRepr(value)
+            
         return r_name, r_value, r_type
 
     def dump_frames(self, frame):
