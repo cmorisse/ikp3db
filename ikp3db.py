@@ -1751,7 +1751,7 @@ def main():
     # debugged script with all IKPdb args removed
     sys.argv = cmd_line_args.script_command_args
 
-    _logger.g_info("IKP3db %s - Inouk Python Debugger for CPython 3.x", __version__)
+    _logger.g_info("IKP3db %s - Inouk Python Debugger for CPython 3.6+", __version__)
     _logger.g_debug("  interpreter: '%s'", sys.executable)
     _logger.g_debug("  args: %s", cmd_line_args)
     _logger.g_debug("  starts debugging: '%s'", " ".join(sys.argv))
