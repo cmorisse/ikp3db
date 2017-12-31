@@ -831,10 +831,14 @@ class IKPdb(object):
                             frame_browser.f_code,
                             hex(id(frame_browser.f_back)),
                             hex(id(self.frame_beginning)))
+
+            # At root frame, globals == locals so we dump only globals
+            if frame_browser.f_back.f_back != self.frame_beginning:
+                locals_vars_list = self.extract_object_properties(frame_browser.f_locals,
+                                                                  limit_size=True)
+            else:
+                locals_vars_list = []
                                 
-            # Update local variables (User can use watch expressions for globals)
-            locals_vars_list = self.extract_object_properties(frame_browser.f_locals,
-                                                              limit_size=True)
             globals_vars_list = self.extract_object_properties(frame_browser.f_globals,
                                                                limit_size=True)
             # normalize path sent to debugging client
