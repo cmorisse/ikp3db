@@ -17,7 +17,7 @@ import traceback
 import types
 import inspect
 import threading
-import mutiprocessing
+import multiprocessing
 import types
 import argparse
 import datetime
