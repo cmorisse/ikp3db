@@ -558,7 +558,12 @@ class IKPdb(object):
         self.file_name_cache = {}        
         
         self._CWD = working_directory or os.getcwd()
+        if self._CWD and self._CWD[-1] != '/':
+            self._CWD += '/'
+
         self._CLIENT_CWD = client_working_directory or ''
+        if self._CLIENT_CWD and self._CLIENT_CWD[-1] != '/':
+            self._CLIENT_CWD += '/'
         
         self.mainpyfile = ''
         self._active_breakpoint_lock = threading.Lock()
@@ -613,6 +618,7 @@ class IKPdb(object):
         else:
             file_name = client_file_name
         
+        # Try to find file using it's absolute path
         if os.path.isabs(file_name) and os.path.exists(file_name):
             _logger.p_debug("  => found absolute path: '%s'", file_name)
             return file_name
