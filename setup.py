@@ -38,7 +38,7 @@ setup(
     url = 'https://github.com/cmorisse/ikp3db',
     classifiers=[
         #'Framework :: Buildout',
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Debuggers',

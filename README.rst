@@ -1,7 +1,9 @@
 A hackable CPython remote debugger designed for integration with the latest generation of Javascript editor / IDE (eg. Cloud9, Atom, VS Code)
 =============================================================================================================================================
 
-**IKP3db is an IKPdb fork that supports Python 3 only.**
+
+IKP3db is a Python 3 debugger. For **Python 2** see the IKPdb project on github and pypi. https://github.com/audaxis/ikpdb
+
 
 Features
 --------
