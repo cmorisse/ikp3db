@@ -9,7 +9,7 @@ import sys
 from setuptools import setup, find_packages, Extension
 
 name = 'ikp3db'
-version = '1.1'
+version = '1.1.1'
 
 
 if sys.version_info[:2] != (3,6):
