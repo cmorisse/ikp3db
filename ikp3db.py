@@ -1576,7 +1576,7 @@ class IKPdb(object):
             elif command == 'stepOut':  # <=> Pdb r(eturn)
                 _logger.x_debug("stepOut(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._resume_command_q.put('stepOut')
+                self._command_q.put({'cmd':'stepOut'})
 
             elif command == 'evaluate':
                 _logger.e_debug("evaluate(%s)", args)
