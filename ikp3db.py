@@ -174,7 +174,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
                 string = message % args
             except:
                 string = message+"".join([str(e) for e in args])
-            print(IKPdbLogger.TEMPLATES[level//10] % (domain, ts, string,), file=sys.stderr) 
+            print(IKPdbLogger.TEMPLATES[level//10] % (domain, ts, string,), file=sys.stderr, flush=True) 
 
 _logger = IKPdbLogger
 
