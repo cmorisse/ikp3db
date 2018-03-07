@@ -30,7 +30,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 ##
 # Logging System
