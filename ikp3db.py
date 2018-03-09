@@ -704,13 +704,17 @@ class IKPdb(object):
             #             count +=1
             #     print "    %s => %s = %s" % (o, count, dir(o),)
             # else:
-            if hasattr(o, '__dict__'):
-                count = len([m_name for m_name, m_value in o.__dict__.items()
-                              if not m_name.startswith('__') 
-                                and not type(m_value) in (types.ModuleType, 
-                                                          types.MethodType, 
-                                                          types.FunctionType,) ])
-            else:
+            try:
+                if hasattr(o, '__dict__'):
+                    count = len([m_name for m_name, m_value in o.__dict__.items()
+                                  if not m_name.startswith('__') 
+                                    and not type(m_value) in (types.ModuleType, 
+                                                              types.MethodType, 
+                                                              types.FunctionType,) ])
+                else:
+                    count = 0
+            except:
+                # Thank you werkzeug __getattr__ overloading!
                 count = 0
             return count
 
