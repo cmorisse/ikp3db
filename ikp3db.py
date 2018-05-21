@@ -1855,7 +1855,8 @@ def main():
         run_script_event = threading.Event()
         debugger_thread = threading.Thread(target=ikpdb.command_loop,
                                            name='IKPdbCommandLoop',
-                                           args=(run_script_event,))
+                                           args=(run_script_event,),
+                                           daemon=True)
         
         debugger_thread.start()
         ikpdb.debugger_thread_ident = debugger_thread.ident
