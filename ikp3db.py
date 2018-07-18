@@ -1397,7 +1397,7 @@ class IKPdb(object):
 
         self.mainpyfile = self.canonic(filename)
         #statement = 'execfile(%r)\n' % filename
-        statement = "exec(compile(open('%s').read(), '%s', 'exec'))" % (filename, filename,)
+        statement = "exec(compile(open('%s', encoding='utf-8').read(), '%s', 'exec'))" % (filename, filename,)
         
         globals = __main__.__dict__
         locals = globals
