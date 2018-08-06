@@ -195,8 +195,8 @@ class IKPdbConnectionHandler(object):
     
     This class contains methods to receive, send and reply to such messages.
     """
-    MAGIC_CODE = b"LLADpcdtbdpac"
-    MESSAGE_TEMPLATE = b"length=%%i%b%%b" % MAGIC_CODE
+    MAGIC_CODE = u"LLADpcdtbdpac"
+    MESSAGE_TEMPLATE = u"length=%%i%s%%s" % MAGIC_CODE
     
     SOCKET_BUFFER_SIZE = 4096  # Maximum size of a packet received from client
     MSG_WAITALL = 0x100  # From Linux sys/socket.h
@@ -204,12 +204,13 @@ class IKPdbConnectionHandler(object):
     def __init__(self, connection):
         self._connection = connection
         self._connection_lock = threading.Lock()
-        self._received_data = b''
+        self._received_data = u''
         self._network_loop = True
 
     def encode(self, obj):
-        json_obj_b = json.dumps(obj).encode()
-        return self.MESSAGE_TEMPLATE % (len(json_obj_b), json_obj_b,)
+        obj_str = json.dumps(obj)
+        msg_str = self.MESSAGE_TEMPLATE % (len(obj_str), obj_str,)
+        return msg_str
 
     def decode(self, message):
         json_obj = message.split(self.MAGIC_CODE)[1]
@@ -271,7 +272,8 @@ class IKPdbConnectionHandler(object):
                 'exception': exception
             })
             if self._connection:
-                send_bytes_count = self._connection.sendall(msg)
+                msg_bytes = bytearray(msg, 'utf-8')
+                send_bytes_count = self._connection.sendall(msg_bytes)
                 self.log_sent(msg)
                 return send_bytes_count
             raise IKPdbConnectionError("Connection lost!")
@@ -296,9 +298,10 @@ class IKPdbConnectionHandler(object):
             obj['info_messages'] = info_messages
             obj['warning_messages'] = warning_messages
             obj['error_messages'] = error_messages
-            msg = self.encode(obj)
-            send_bytes_count = self._connection.sendall(msg)
-            self.log_sent(msg)
+            msg_str = self.encode(obj)
+            msg_bytes = bytearray(msg_str, 'utf-8')
+            send_bytes_count = self._connection.sendall(msg_bytes)
+            self.log_sent(msg_bytes)
             return send_bytes_count
 
     def receive(self):
@@ -327,7 +330,7 @@ class IKPdbConnectionHandler(object):
                     'args':{}
                 }
     
-            self._received_data += data
+            self._received_data += data.decode('utf-8')
                 
             # have we received a MAGIC_CODE
             try:
@@ -337,7 +340,7 @@ class IKPdbConnectionHandler(object):
             
             # Have we received a length=
             try:
-                length_idx = self._received_data.index(b'length=')
+                length_idx = self._received_data.index(u'length=')
             except ValueError:
                 continue
             
