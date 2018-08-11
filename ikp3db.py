@@ -1745,14 +1745,17 @@ def signal_handler(signal, frame):
 
 
 def check_version():
-    URL = 'https://pypi.python.org/pypi/ikp3db/json'
+    from urllib import request
+    URL = 'https://pypi.org/pypi/ikp3db/json'
     try:
-        pypi_output = json.loads(urllib2.urlopen(URL, timeout=1).read())
+        pypi_output = json.loads(request.urlopen(URL, timeout=1).read())
         last_version = pypi_output['info']['version']
-        if last_version != __version__:
+        if last_version > __version__:
             _logger.g_warning("IKP3db %s is available on pypi.", last_version)
     except:
-            _logger.g_error("Unable to check version. pypi.python.org responded too slowly.")
+            _logger.g_warning("Unable to check available version. "
+                              "pypi.python.org responded too slowly.")
+
 
 ##
 # main
@@ -1829,7 +1832,7 @@ def main():
     mainpyfile =  sys.argv[0]     # Get script filename
     _logger.g_debug("  mainpyfile = '%s'", mainpyfile)
     if not os.path.exists(mainpyfile):
-        print('Error:', mainpyfile, 'does not exist')
+        print("Error: '%s' does not exist." % mainpyfile)
         sys.exit(1)
 
     # sets up signal handlers
