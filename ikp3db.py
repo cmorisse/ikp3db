@@ -587,6 +587,13 @@ class IKPdb(object):
         self.execution_started = False
         self.tracing_enabled = False
 
+        # At any time IKPdb status can be
+        #   * 'pending' => Execution has not started yet
+        #   * 'running' 
+        #   * 'stopped' => either on a breakpoint or an exception
+        #   * 'terminated'
+        self.status = 'pending'  
+
         # stop management
         self.pending_stop = False  # True if any of frame_xxxx is set
         self.frame_stop = None # stepOver and stepInto
@@ -1107,6 +1114,7 @@ class IKPdb(object):
                       
         # Acquire Breakpoint Lock before sending break command to remote client
         self._active_breakpoint_lock.acquire()
+        self.status = 'stopped'
         frames = self.dump_frames(frame)
         exception=None
         warning_messages = []
@@ -1124,7 +1132,7 @@ class IKPdb(object):
 
         remote_client.send('programBreak', 
                            frames=frames,
-                           result={'executionStatus': 'stopped'},
+                           result={'executionStatus': 'stopped'},  #=self.status
                            warning_messages=warning_messages,
                            exception=exception)
                            
@@ -1193,6 +1201,7 @@ class IKPdb(object):
                 _logger.x_critical("Unknown command: %s received by _line_tracer()" % resume_command)
                 raise IKPdbQuit()
 
+        self.status = 'running'
         self._active_breakpoint_lock.release()
         return
 
@@ -1411,7 +1420,7 @@ class IKPdb(object):
         # _tracer() and _line_tracer() methods for details).
         self.reset()
         self.execution_started = True
-
+        self.status = 'running'
         # Turn on limited tracing by setting trace function for 
         # current_thread only. This allow self.frame_beginning to be set at
         # first tracer "call" invocation.
@@ -1422,6 +1431,7 @@ class IKPdb(object):
         except IKPdbQuit:
             pass
         finally:
+            self.status = 'terminated'
             self.disable_tracing()        
         
     def command_loop(self, run_script_event):
@@ -1537,30 +1547,10 @@ class IKPdb(object):
                 remote_client.reply(obj, result, 
                                     command_exec_status=command_exec_status,
                                     error_messages=error_messages)
-            
-            elif command == "getProperties":
-                _logger.e_debug("getProperties(%s)", args)
-                self._command_q.put({
-                    'cmd':'getProperties',
-                    'obj': obj,
-                    'id': args['id']
-                })
-                # reply will be done in _tracer() when result is available
-
-            elif command == "setVariable":
-                _logger.e_debug("setVariable(%s)", args)
-                self._command_q.put({
-                    'cmd':'setVariable',
-                    'obj': obj,
-                    'frame': args['frame'],
-                    'name': args['name'],  # TODO: Rework plugin to send var's id
-                    'value': args['value']
-                })
-                # reply will be done in _tracer() when result is available
 
             elif command == 'runScript':
-                _logger.x_debug("runScript(%s)", args)
                 #TODO: handle a 'stopAtEntry' arg
+                _logger.x_debug("runScript(%s)", args)
                 run_script_event.set()
                 remote_client.reply(obj, {'executionStatus': 'running'})
 
@@ -1593,7 +1583,7 @@ class IKPdb(object):
 
             elif command == 'evaluate':
                 _logger.e_debug("evaluate(%s)", args)
-                if self.tracing_enabled:
+                if self.tracing_enabled and self.status == 'stopped':
                     self._command_q.put({
                         'cmd':'evaluate',
                         'obj': obj,
@@ -1606,6 +1596,35 @@ class IKPdb(object):
                 else:
                     remote_client.reply(obj, {'value': None, 'type': None})
                     
+            elif command == "getProperties":
+                _logger.e_debug("getProperties(%s)", args)
+                if self.tracing_enabled and self.status == 'stopped':
+                    self._command_q.put({
+                        'cmd':'getProperties',
+                        'obj': obj,
+                        'id': args['id']
+                    })
+                    # reply will be done in _tracer() when result is available
+                else:
+                    remote_client.reply(obj, {'value': None, 'type': None})
+
+            elif command == "setVariable":
+                _logger.e_debug("setVariable(%s)", args)
+                if self.tracing_enabled and self.status == 'stopped':
+                    self._command_q.put({
+                        'cmd':'setVariable',
+                        'obj': obj,
+                        'frame': args['frame'],
+                        'name': args['name'],  # TODO: Rework plugin to send var's id
+                        'value': args['value']
+                    })
+                    # reply will be done in _tracer() when result is available
+                else:
+                    remote_client.reply(obj, {'value': None, 'type': None})
+
+            elif command == 'reconnect':
+                _logger.n_debug("reconnect(%s)", args)
+                remote_client.reply(obj, {'executionStatus': self.status})
                 
             elif command == '_InternalQuit':
                 # '_InternalQuit' is an IKPdb internal message, generated by 
@@ -1915,6 +1934,8 @@ def main():
             remote_client.send('programEnd', 
                                result={'exit_code': exit_code, 
                                        'executionStatus': 'terminated'})
+            # Allows debugger' network server to exit
+            ikpdb.status = 'terminated'  
         except:
             pass
         close_connection()
