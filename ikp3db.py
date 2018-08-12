@@ -1125,7 +1125,6 @@ class IKPdb(object):
     def _line_tracer(self, frame, exc_info=False):
         """This function is called when debugger has decided that it must
         stop or break at this frame."""
-        
         # next logging statement commented for performance
         _logger.f_debug("user_line() with " 
                         "threadName=%s, frame=%s, frame.f_code=%s, self.mainpyfile=%s,"
@@ -1143,7 +1142,6 @@ class IKPdb(object):
         frames = self.dump_frames(frame)
         exception=None
         warning_messages = []
-
         if exc_info:
             exception = {
                 'type': IKPdbRepr(exc_info[1]),
@@ -1970,8 +1968,6 @@ def main():
             remote_client.send('programEnd', 
                                result={'exit_code': exit_code, 
                                        'executionStatus': 'terminated'})
-            # Allows debugger' network server to exit
-            ikpdb.status = 'terminated'  
         except:
             pass
         close_connection()
@@ -1992,13 +1988,13 @@ def main():
             pm_traceback = pm_traceback.tb_next      
         
         ikpdb._line_tracer(pm_traceback.tb_frame, exc_info=sys.exc_info())
-        
         try:
             remote_client.send('programEnd', 
                                result={'exit_code': None, 
                                        'executionStatus': 'terminated'})
         except:
             pass
+        ikpdb.status = 'terminated'                                       
         
         _logger.g_info("Post mortem debugger finished.")
         close_connection()
