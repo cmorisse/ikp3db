@@ -1147,7 +1147,7 @@ class IKPdb(object):
         if exc_info:
             exception = {
                 'type': IKPdbRepr(exc_info[1]),
-                'info': str(exc_info[1].args[0])
+                'info': exc_info[1].message
             }
 
         if self.stop_at_first_statement:
