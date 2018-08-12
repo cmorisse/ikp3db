@@ -368,8 +368,7 @@ class IKPdbConnectionHandler(object):
 #
 
 class IKPdbQuit(Exception):
-    """ A dummy Exception used by debugger to quit debugged program.
-    """
+    """A dummy Exception used by debugger to quit debugged program."""
     pass
 
 def IKPdbRepr(t):
@@ -1076,8 +1075,8 @@ class IKPdb(object):
         return False
 
     def should_break_here(self, frame):
-        """ Check if there is a breakpoint at this frame or not.
-        """
+        """Check wether there is a breakpoint at this frame."""
+        # Next line commented out for performance
         #_logger.b_debug("should_break_here(filename=%s, lineno=%s) with breaks=%s",
         #                frame.f_code.co_filename,
         #                frame.f_lineno,
@@ -1092,7 +1091,7 @@ class IKPdb(object):
         return True if bp else False
 
     def _line_tracer(self, frame, exc_info=False):
-        """This function is called when debugger has decided that we must
+        """This function is called when debugger has decided that it must
         stop or break at this frame."""
         
         # next logging statement commented for performance
@@ -1200,7 +1199,7 @@ class IKPdb(object):
     def _tracer(self, frame, event, arg):
         if event == 'line':
             
-            # For the sake of performande, we inline following code in
+            # For the sake of performance, we inline should_stop_here() code in
             # this method. 
             # Code of these methods is still there for reference.
             #
@@ -1440,7 +1439,7 @@ class IKPdb(object):
                 
             elif command == "setBreakpoint":
                 # Set a new breakpoint. If the lineno line doesn't exist for the
-                # filename passed as argument, return an error message. €
+                # filename passed as argument, return an error message.
                 # The filename should be in canonical form, as described in the 
                 # canonic() method.
                 file_name = args['file_name']
@@ -1754,7 +1753,7 @@ def check_version():
             _logger.g_warning("IKP3db %s is available on pypi.", last_version)
     except:
             _logger.g_warning("Unable to check available version. "
-                              "pypi.python.org responded too slowly.")
+                              "pypi.org responded too slowly.")
 
 
 ##
@@ -1861,7 +1860,8 @@ def main():
     
     # Initialize IKPdb listening socket
     debug_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    debug_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # http://stackoverflow.com/questions/4465959/python-errno-98-address-already-in-use?lq=1
+    # http://stackoverflow.com/questions/4465959/python-errno-98-address-already-in-use?lq=1
+    debug_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
     debug_socket.bind((cmd_line_args.IKPDB_ADDRESS, cmd_line_args.IKPDB_PORT,))
 
     _logger.g_info('IKP3db listening on %s:%s', cmd_line_args.IKPDB_ADDRESS, cmd_line_args.IKPDB_PORT)
