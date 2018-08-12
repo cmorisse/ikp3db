@@ -200,12 +200,14 @@ class IKPdbConnectionHandler(object):
     
     SOCKET_BUFFER_SIZE = 4096  # Maximum size of a packet received from client
     MSG_WAITALL = 0x100  # From Linux sys/socket.h
+    CMD_LOOP_SOCKET_TIMEOUT = 0.3  # second 
     
     def __init__(self, connection):
         self._connection = connection
         self._connection_lock = threading.Lock()
         self._received_data = u''
         self._network_loop = True
+        self._connection.settimeout(self.CMD_LOOP_SOCKET_TIMEOUT)
 
     def encode(self, obj):
         obj_str = json.dumps(obj)
@@ -304,7 +306,7 @@ class IKPdbConnectionHandler(object):
             self.log_sent(msg_bytes)
             return send_bytes_count
 
-    def receive(self):
+    def receive(self, ikpdb):
         """Waits for a message from the debugger and returns it as a dict.
         """
         # with self._connection_lock:
@@ -320,16 +322,39 @@ class IKPdbConnectionHandler(object):
                 else:
                     data = b''
                 _logger.n_debug("Socket.recv(%s) => %s", self.SOCKET_BUFFER_SIZE, data)
+
+            except socket.timeout:
+                _logger.n_debug("socket.timeout witk ikpdb.status=%s", ikpdb.status)
+                if ikpdb.status == 'terminated':
+                    _logger.n_debug("breaking IKPdbConnectionHandler.receive() "
+                                    "network loop as ikpdb state is 'terminated'.")
+                    return {    
+                        'command': '_InternalQuit',
+                        'args':{}
+                    }
+                continue
+
             except socket.error as socket_err:
-                return {'command': '_InternalQuit', 
-                        'args':{'socket_error_number': socket_err.errno,
-                                'socket_error_str': socket_err.strerror}}
-            except:
+                if ikpdb.status == 'terminated':
+                    return {'command': '_InternalQuit', 
+                            'args':{'socket_error_number': socket_err.errno,
+                                    'socket_error_str': socket_err.strerror}}
+                continue
+            
+            except Exception as exc:
+                _logger.g_error("Unexecpected Error: '%s' in IKPdbConnectionHandler"
+                                ".command_loop.", exc)
+                _logger.g_error(traceback.format_exc())
+                print("".join(traceback.format_stack()))
                 return {    
                     'command': '_InternalQuit',
-                    'args':{}
+                    'args':{
+                        "error": exc.__class__.__name__,
+                        "message": exc.message
+                    }
                 }
     
+            # received data is utf8 encoded
             self._received_data += data.decode('utf-8')
                 
             # have we received a MAGIC_CODE
@@ -338,7 +363,7 @@ class IKPdbConnectionHandler(object):
             except ValueError:
                 continue
             
-            # Have we received a length=
+            # Have we received a 'length='
             try:
                 length_idx = self._received_data.index(u'length=')
             except ValueError:
@@ -1196,6 +1221,11 @@ class IKPdb(object):
                                     result,
                                     command_exec_status=command_exec_status,
                                     error_messages=error_messages)
+                                    
+            elif command['cmd'] == '_InternalQuit':
+                _logger.x_critical("Exiting tracer upon reception of _Internal"
+                                   "Quit  command")
+                raise IKPdbQuit()                                    
 
             else:
                 _logger.x_critical("Unknown command: %s received by _line_tracer()" % resume_command)
@@ -1264,6 +1294,7 @@ class IKPdb(object):
         print("Dumping all threads Tracing state: (%s)" % context)
         print("    self.tracing_enabled=%s" % self.tracing_enabled)
         print("    self.execution_started=%s" % self.execution_started)
+        print("    self.status=%s" % self.status)
         print("    self.frame_beginning=%s" % self.frame_beginning)
         print("    self.debugger_thread_ident=%s" % self.debugger_thread_ident)
         for thr in threading.enumerate():
@@ -1295,7 +1326,9 @@ class IKPdb(object):
         :return: True if tracing has been enabled, False else.
         """
         _logger.x_debug("enable_tracing()")
+        # uncomment next line to get debugger tracing info
         #self.dump_tracing_state("before enable_tracing()")
+        
         if not self.tracing_enabled and self.execution_started:
             # Restore or set trace function on all existing frames appart from 
             # debugger
@@ -1435,11 +1468,13 @@ class IKPdb(object):
             self.disable_tracing()        
         
     def command_loop(self, run_script_event):
-        """ return 1 to exit command_loop and resume execution 
+        """ This is the debugger command loop that processes (protocol) client
+        requests.
         """
         while True:
-            obj = remote_client.receive()
-            command = obj["command"]  # TODO: ensure we always have a command if receive returns
+            obj = remote_client.receive(self)
+            command = obj["command"]  
+            # TODO: ensure we always have a command if receive returns
             args = obj.get('args', {})
         
             if command == 'getBreakpoints':
@@ -1454,7 +1489,7 @@ class IKPdb(object):
                 # canonic() method.
                 file_name = args['file_name']
                 line_number = args['line_number']
-                condition = args.get('condition', None)
+                condition = args.get('condition', '')
                 enabled = args.get('enabled', True)
                 _logger.b_debug("setBreakpoint(file_name=%s, line_number=%s,"
                                 " condition=%s, enabled=%s) with CWD=%s",
@@ -1551,8 +1586,8 @@ class IKPdb(object):
             elif command == 'runScript':
                 #TODO: handle a 'stopAtEntry' arg
                 _logger.x_debug("runScript(%s)", args)
-                run_script_event.set()
                 remote_client.reply(obj, {'executionStatus': 'running'})
+                run_script_event.set()
 
             elif command == 'suspend':
                 _logger.x_debug("suspend(%s)", args)
@@ -1596,7 +1631,7 @@ class IKPdb(object):
                 else:
                     remote_client.reply(obj, {'value': None, 'type': None})
                     
-            elif command == "getProperties":
+            elif command == 'getProperties':
                 _logger.e_debug("getProperties(%s)", args)
                 if self.tracing_enabled and self.status == 'stopped':
                     self._command_q.put({
@@ -1608,7 +1643,7 @@ class IKPdb(object):
                 else:
                     remote_client.reply(obj, {'value': None, 'type': None})
 
-            elif command == "setVariable":
+            elif command == 'setVariable':
                 _logger.e_debug("setVariable(%s)", args)
                 if self.tracing_enabled and self.status == 'stopped':
                     self._command_q.put({
@@ -1635,6 +1670,7 @@ class IKPdb(object):
                 # in order to allow debugged program to shutdown correctly.
                 # This message must NEVER be send by remote client.
                 _logger.e_debug("_InternalQuit(%s)", args)
+                self._command_q.put({'cmd':'_InternalQuit'})
                 return
             
             else: # unrecognized command ; just log and ignored
@@ -1781,7 +1817,7 @@ def check_version():
 def main():
 
     parser = argparse.ArgumentParser(description="IKPdb %s - Inouk Python Debugger for CPython 2.7" % __version__,
-                                     epilog="Copyright (c) 2016, 2017, 2018 by Cyril MORISSE, Audaxis")
+                                     epilog="Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis")
     parser.add_argument("-ik_a","--ikpdb-address", 
                         default='127.0.0.1',
                         dest="IKPDB_ADDRESS",
