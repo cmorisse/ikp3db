@@ -378,11 +378,11 @@ def IKPdbRepr(t):
     :return: a string representation of t's type
     Note: Type representation str format is not finalized...
     """
-    #if hasattr(t, '__class__'):
-    #    return t.__class__.__name__
-    #t_type = type(t)
-    #return str(t_type).split(' ')[1][1:-2]
-    return str(type(t))
+    try:
+        result = str(type(t)).split('\'')[1]
+    except:
+        result = "IKPdbReprError"
+    return result
 
 class IKBreakpoint(object):
     """ IKBreakpoint implements and manages IKPdb Breakpoints. 
