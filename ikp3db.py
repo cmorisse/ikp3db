@@ -3,7 +3,7 @@
 
 #
 # This file is part of the IKPdb Debugger
-# Copyright (c) 2016 by Cyril MORISSE, Audaxis
+# Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis
 # Licence: MIT. See LICENCE at repository root
 #
 import socket
@@ -30,7 +30,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None 
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 ##
 # Logging System
