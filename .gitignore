@@ -6,7 +6,9 @@
 # plumbing
 .idea/
 py2*/
+py3*/
 venv*/
+.python-version
 .c9/
 .vscode/
 

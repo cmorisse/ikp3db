@@ -1949,6 +1949,7 @@ def main():
         debugger_thread = threading.Thread(target=ikpdb.command_loop,
                                            name='IKPdbCommandLoop',
                                            args=(run_script_event,))
+        sys.breakpointhook = set_trace
         debugger_thread.start()
         ikpdb.debugger_thread_ident = debugger_thread.ident
         run_script_event.wait()  # Wait for client to run script

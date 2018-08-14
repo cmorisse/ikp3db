@@ -11,9 +11,8 @@ from setuptools import setup, find_packages, Extension
 name = 'ikp3db'
 version = '1.2.1'
 
-
-if sys.version_info[:2] != (3,6):
-    sys.exit('Sorry, IKPdb only supports Python 3.6.x for now.')
+if sys.version_info[:2] < (3,6):
+    sys.exit('Sorry, IKPdb only supports Python 3.6 and above.')
 
 
 long_description = (
