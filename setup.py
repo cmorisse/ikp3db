@@ -9,7 +9,7 @@ import sys
 from setuptools import setup, find_packages, Extension
 
 name = 'ikp3db'
-version = '1.2.1'
+version = '1.3'
 
 if sys.version_info[:2] < (3,6):
     sys.exit('Sorry, IKPdb only supports Python 3.6 and above.')
