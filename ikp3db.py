@@ -17,7 +17,7 @@ import traceback
 import types
 import inspect
 import threading
-import multiprocessing
+import queue
 import types
 import argparse
 import datetime
@@ -606,7 +606,7 @@ class IKPdb(object):
         self.mainpyfile = ''
         self._active_breakpoint_lock = threading.Lock()
         self._active_thread_lock = threading.Lock()
-        self._command_q = multiprocessing.Queue(maxsize=1)
+        self._command_q = queue.Queue(maxsize=1)
 
         # tracing is disabled until required 
         self.execution_started = False
@@ -1162,6 +1162,7 @@ class IKPdb(object):
         # Enter a loop to process commands sent by client
         while True:
             command = self._command_q.get()
+
             if command['cmd'] == 'resume':
                 self.setup_resume()
                 break
@@ -1289,33 +1290,34 @@ class IKPdb(object):
     def dump_tracing_state(self, context):
         """ A debug tool to dump all threads tracing state 
         """
-        print("Dumping all threads Tracing state: (%s)" % context)
-        print("    self.tracing_enabled=%s" % self.tracing_enabled)
-        print("    self.execution_started=%s" % self.execution_started)
-        print("    self.status=%s" % self.status)
-        print("    self.frame_beginning=%s" % self.frame_beginning)
-        print("    self.debugger_thread_ident=%s" % self.debugger_thread_ident)
-        for thr in threading.enumerate():
-            is_current_thread = thr.ident == threading.current_thread().ident
-            print("    Thread: %s, %s %s" % (thr.name, thr.ident, "<= Current*" if is_current_thread else ''))
-            a_frame = sys._current_frames()[thr.ident]
-            while a_frame:
-                flags = []
-                if a_frame == self.frame_beginning:
-                    flags.append("beginning")
-                if a_frame == inspect.currentframe():
-                    flags.append("current")
-                if flags:
-                    flags_str = "**"+",".join(flags)
-                else:
-                    flags_str = ""
-                print("        => %s, %s:%s(%s) | %s %s" % (a_frame, 
-                                                            a_frame.f_code.co_filename, 
-                                                            a_frame.f_lineno,
-                                                            a_frame.f_code.co_name, 
-                                                            a_frame.f_trace,
-                                                            flags_str))
-                a_frame = a_frame.f_back
+        _logger.x_debug("Dumping all threads Tracing state: (%s)" % context)
+        _logger.x_debug("    self.tracing_enabled=%s" % self.tracing_enabled)
+        _logger.x_debug("    self.execution_started=%s" % self.execution_started)
+        _logger.x_debug("    self.status=%s" % self.status)
+        _logger.x_debug("    self.frame_beginning=%s" % self.frame_beginning)
+        _logger.x_debug("    self.debugger_thread_ident=%s" % self.debugger_thread_ident)
+        if False:
+            for thr in threading.enumerate():
+                is_current_thread = thr.ident == threading.current_thread().ident
+                _logger.x_debug("    Thread: %s, %s %s" % (thr.name, thr.ident, "<= Current*" if is_current_thread else ''))
+                a_frame = sys._current_frames()[thr.ident]
+                while a_frame:
+                    flags = []
+                    if a_frame == self.frame_beginning:
+                        flags.append("beginning")
+                    if a_frame == inspect.currentframe():
+                        flags.append("current")
+                    if flags:
+                        flags_str = "**"+",".join(flags)
+                    else:
+                        flags_str = ""
+                    _logger.x_debug("        => %s, %s:%s(%s) | %s %s" % (a_frame, 
+                                                                          a_frame.f_code.co_filename, 
+                                                                          a_frame.f_lineno,
+                                                                          a_frame.f_code.co_name, 
+                                                                          a_frame.f_trace,
+                                                                          flags_str))
+                    a_frame = a_frame.f_back
 
     def enable_tracing(self):
         """ Enable tracing if it is disabled and debugged program is running, 
@@ -1323,7 +1325,7 @@ class IKPdb(object):
         Do this on all threads but the debugger thread.
         :return: True if tracing has been enabled, False else.
         """
-        _logger.x_debug("enable_tracing()")
+        _logger.x_debug("entering enable_tracing()")
         # uncomment next line to get debugger tracing info
         #self.dump_tracing_state("before enable_tracing()")
         
@@ -1589,10 +1591,10 @@ class IKPdb(object):
 
             elif command == 'suspend':
                 _logger.x_debug("suspend(%s)", args)
-                self.setup_suspend()
                 # We return a running status which is True at that point. Next 
                 # programBreak will change status to 'stopped'
                 remote_client.reply(obj, {'executionStatus': 'running'})
+                self.setup_suspend()
                 
             elif command == 'resume':
                 _logger.x_debug("resume(%s)", args)
