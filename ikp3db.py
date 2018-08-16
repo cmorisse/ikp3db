@@ -2,7 +2,7 @@
 # coding: utf8
 
 #
-# This file is part of the IKPdb Debugger
+# This file is part of the IKP3db Debugger
 # Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis
 # Licence: MIT. See LICENCE at repository root
 #
@@ -34,13 +34,13 @@ __version__ = "1.3"
 
 ##
 # Logging System
-# IKPdb has it's own logging system distinct from python logging to
+# IKP3db has it's own logging system distinct from python logging to
 # avoid collision when debugging programs which reconfigure logging
 # system wide.
 #
 # logging is organized in domains (which corresponds to loggers)
 # identified by one letter.
-# IKPdb logs on these domains:
+# IKP3db logs on these domains:
 # letter: domain
 # - n,N: Network 
 # - b,B: Breakpoints 
@@ -79,19 +79,19 @@ class MetaIKPdbLogger(type):
         return wrapper
 
 class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
-    """ IKPdb implements it's own logging system to:
+    """ IKP3db implements it's own logging system to:
     - avoid problem while debugging programs that reconfigure logging system wide.
-    - allow IKPdb debugging...
+    - allow IKP3db debugging...
     """
     
     enabled = False
     TEMPLATES = [
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",    # nolog    0
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",    # debug    1
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[92mINFO\033[0m - %s",     # info     2
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",  # warning  3
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[91mERROR\033[0m - %s",    # error    4
-        "\033[1m[IKPdb-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s", # critical 5
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",    # nolog    0
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",    # debug    1
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",     # info     2
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",  # warning  3
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",    # error    4
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s", # critical 5
     ]
 
     # Levels
@@ -409,7 +409,7 @@ def IKPdbRepr(t):
     return result
 
 class IKBreakpoint(object):
-    """ IKBreakpoint implements and manages IKPdb Breakpoints. 
+    """ IKBreakpoint implements and manages IKP3db Breakpoints. 
     
     Basically a breakpoint is described by:
     
@@ -612,7 +612,7 @@ class IKPdb(object):
         self.execution_started = False
         self.tracing_enabled = False
 
-        # At any time IKPdb status can be
+        # At any time IKP3db status can be
         #   * 'pending' => Execution has not started yet
         #   * 'running' 
         #   * 'stopped' => either on a breakpoint or an exception
@@ -978,7 +978,7 @@ class IKPdb(object):
                 result_type = t
             else: 
                 result_type = t.__name__
-            result_value = "<plaintext>%s: IKPdb is unable to JSON encode result to send it to "\
+            result_value = "<plaintext>%s: IKP3db is unable to JSON encode result to send it to "\
                            "debugging client.\n"\
                            "  This typically occurs if you try to print a string that cannot be"\
                            " decoded to 'UTF-8'.\n"\
@@ -1149,7 +1149,7 @@ class IKPdb(object):
             }
 
         if self.stop_at_first_statement:
-            warning_messages = ["IKPdb stopped so that you can setup some "
+            warning_messages = ["IKP3db stopped so that you can setup some "
                                 "breakpoints before 'Resuming' execution."]
             self.stop_at_first_statement = False
 
@@ -1431,7 +1431,7 @@ class IKPdb(object):
         in __main__ namespace. This is required for imports from __main__ to 
         run correctly.
         
-        Note that this has the effect to wipe IKPdb's vars created at this point.
+        Note that this has the effect to wipe IKP3db's vars created at this point.
         """
         import __main__
         __main__.__dict__.clear()
@@ -1446,7 +1446,7 @@ class IKPdb(object):
         globals = __main__.__dict__
         locals = globals
 
-        # When IKPdb sets tracing, a number of call and line events happens
+        # When IKP3db sets tracing, a number of call and line events happens
         # BEFORE debugger even reaches user's code (and the exact sequence of
         # events depends on python version). So we take special measures to
         # avoid stopping before we reach the main script (see reset(),
@@ -1506,7 +1506,7 @@ class IKPdb(object):
                 if not c_file_name:
                     err = "Failed to find file '%s'" % file_name
                     _logger.g_error("setBreakpoint error: %s", err)
-                    msg = "IKPdb error: Failed to set a breakpoint at %s:%s "\
+                    msg = "IKP3db error: Failed to set a breakpoint at %s:%s "\
                           "(%s)." % (file_name, line_number, err)
                     error_messages = [msg]
                     command_exec_status = 'error'
@@ -1517,7 +1517,7 @@ class IKPdb(object):
                                                          enabled=enabled)
                     if err:
                         _logger.g_error("setBreakpoint error: %s", err)
-                        msg = "IKPdb error: Failed to set a breakpoint at %s:%s "\
+                        msg = "IKP3db error: Failed to set a breakpoint at %s:%s "\
                               "(%s)." % (file_name, line_number, err,)
                         error_messages = [msg]
                         command_exec_status = 'error'
@@ -1564,7 +1564,7 @@ class IKPdb(object):
                 bp_number = args.get('breakpoint_number', None)
                 if bp_number is None:
                     result = {}
-                    msg = "IKPdb error: Failed to delete breakpoint (Missing "\
+                    msg = "IKP3db error: Failed to delete breakpoint (Missing "\
                           "required breakpointNumber parameter)."
                     error_messages = [msg]
                     command_exec_status = 'error'
@@ -1573,7 +1573,7 @@ class IKPdb(object):
                     result = {}
                     error_messages = []
                     if err:
-                        msg = "IKPdb error: Failed to delete breakpoint (%s)." % err
+                        msg = "IKP3db error: Failed to delete breakpoint (%s)." % err
                         _logger.g_error(msg)
                         error_messages = [msg]
                         command_exec_status = 'error'
@@ -1632,14 +1632,23 @@ class IKPdb(object):
                     remote_client.reply(obj, {'value': None, 'type': None})
                     
             elif command == 'getProperties':
-                _logger.e_debug("getProperties(%s)", args)
+                _logger.e_debug("getProperties(%s,%s)", args, obj)
                 if self.tracing_enabled and self.status == 'stopped':
-                    self._command_q.put({
-                        'cmd':'getProperties',
-                        'obj': obj,
-                        'id': args['id']
-                    })
-                    # reply will be done in _tracer() when result is available
+                    if args.get('id'):
+                        self._command_q.put({
+                            'cmd':'getProperties',
+                            'obj': obj,
+                            'id': args['id']
+                        })
+                        # reply will be done in _tracer() when result is available
+                    else:
+                        result={}
+                        command_exec_status = 'error'
+                        error_messages = ["IKP3db received getProperties command sent without target variable 'id'."]
+                        remote_client.reply(obj, result, 
+                                            command_exec_status=command_exec_status,
+                                            error_messages=error_messages)
+
                 else:
                     remote_client.reply(obj, {'value': None, 'type': None})
 
@@ -1662,7 +1671,7 @@ class IKPdb(object):
                 remote_client.reply(obj, {'executionStatus': self.status})
                 
             elif command == '_InternalQuit':
-                # '_InternalQuit' is an IKPdb internal message, generated by 
+                # '_InternalQuit' is an IKP3db internal message, generated by 
                 # IKPdbConnectionHandler when a socket.error occured.
                 # Usually this occurs when socket has been destroyed as 
                 # debugged program sys.exit()
@@ -1713,7 +1722,7 @@ def set_trace(a_frame=None):
 
     """
     if not ikpdb:
-        return "Error: IKPdb must be launched before calling ikpd.set_trace()."
+        return "Error: IKP3db must be launched before calling ikpd.set_trace()."
 
     if a_frame is None:
         a_frame = sys._getframe().f_back
@@ -1732,8 +1741,8 @@ def post_mortem(trace_back=None, exc_info=None):
     Using it, you can setup a developer mode where unhandled exceptions 
     are sent to the developer.
     
-    Once user resumes execution, control is returned to caller. IKPdb is 
-    just used to "pretty" display the execution environement.
+    Once user resumes execution, control is returned to caller. IKP3db is 
+    just used to "pretty" display the execution environment.
     
     To call post_mortem() use:
     
@@ -1755,7 +1764,7 @@ def post_mortem(trace_back=None, exc_info=None):
     :rtype: str or None
     """
     if not ikpdb:
-        return "Error: IKPdb must be launched before calling ikpd.post_mortem()."
+        return "Error: IKP3db must be launched before calling ikpd.post_mortem()."
     
     if exc_info:
         trace_back = exc_info[2]
@@ -1816,7 +1825,7 @@ def check_version():
 #
 def main():
 
-    parser = argparse.ArgumentParser(description="IKPdb %s - Inouk Python Debugger for CPython 2.7" % __version__,
+    parser = argparse.ArgumentParser(description="IKP3db %s - Inouk Python Debugger for CPython 3.6 and above." % __version__,
                                      epilog="Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis")
     parser.add_argument("-ik_a","--ikpdb-address", 
                         default='127.0.0.1',
@@ -1871,7 +1880,7 @@ def main():
     _logger.setup(cmd_line_args.IKPDB_LOG)
 
     # We modify sys.argv to reflect command line of
-    # debugged script with all IKPdb args removed
+    # debugged script with all IKP3db args removed
     sys.argv = cmd_line_args.script_command_args
 
     _logger.g_info("IKP3db %s - Inouk Python Debugger for CPython 3.6+", 
@@ -1892,7 +1901,7 @@ def main():
         sys.exit(2)
 
     # By using argparse.REMAINDER, sys.argv reflects command line of
-    # debugged script with all IKPdb args removed
+    # debugged script with all IKP3db args removed
     mainpyfile =  sys.argv[0]     # Get script filename
     _logger.g_debug("  mainpyfile = '%s'", mainpyfile)
     if not os.path.exists(mainpyfile):
@@ -1913,7 +1922,7 @@ def main():
     # modified by the script being debugged. It's a bad idea when it was
     # changed by the user from the command line.
     
-    # Initialize IKPdb listening socket
+    # Initialize IKP3db listening socket
     debug_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # http://stackoverflow.com/questions/4465959/python-errno-98-address-already-in-use?lq=1
     debug_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
