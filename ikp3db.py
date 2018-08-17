@@ -30,7 +30,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None 
-__version__ = "1.3"
+__version__ = "1.3+"
 
 ##
 # Logging System
@@ -617,7 +617,9 @@ class IKPdb(object):
         #   * 'running' 
         #   * 'stopped' => either on a breakpoint or an exception
         #   * 'terminated'
-        self.status = 'pending'  
+        self.status = 'pending'
+        self.debugged_thread_ident = None
+        self.debugged_thread_name = None
 
         # stop management
         self.pending_stop = False  # True if any of frame_xxxx is set
@@ -907,6 +909,7 @@ class IKPdb(object):
                 'line_number': frame_browser.f_lineno,  # Warning 1 based
                 'file_path': file_path,
                 'thread': id(current_thread),
+                'thread_name': current_thread.name,
                 'f_locals': locals_vars_list + globals_vars_list
             }
             frames.append(remote_frame)
@@ -1122,6 +1125,51 @@ class IKPdb(object):
                                                       frame)
         return True if bp else False
 
+    def get_threads(self):
+        """Returns a dict of all threads and indicates thread being debugged.
+        key is thread ident and values thread info.
+        Information from this list can be used to swap thread being debugged.
+        """
+        thread_list = {}
+        for thread in threading.enumerate():
+            thread_ident = thread.ident
+            thread_list[thread_ident] = {
+                "ident": thread_ident,
+                "name": thread.name,
+                "is_debugger": thread_ident == self.debugger_thread_ident,
+                "debugged": thread_ident == self.debugged_thread_ident
+            }
+        return thread_list
+            
+    
+    def set_debugged_thread(self, target_thread_ident=None):
+        """ Allows to reset or set the thread to debug. """
+        if target_thread_ident is None:
+            self.debugged_thread_ident = None
+            self.debugged_thread_name = ''
+            return self.get_threads()
+            
+        thread_list = self.get_threads()
+        if target_thread_ident not in thread_list:
+            return {
+                "result": None,
+                "error": "No thread with ident:%s." % target_thread_ident
+            }
+        
+        if thread_list[target_thread_ident]['is_debugger']:
+            return {
+                "result": None,
+                "error": "Cannot debug IKPdb tracer (sadly...)."
+            }
+        
+        self.debugged_thread_ident = target_thread_ident
+        self.debugged_thread_name = thread_list[target_thread_ident]['name']
+        return {
+            "result": self.get_threads(),
+            "error": ""
+        }
+
+
     def _line_tracer(self, frame, exc_info=False):
         """This function is called when debugger has decided that it must
         stop or break at this frame."""
@@ -1135,7 +1183,15 @@ class IKPdb(object):
                          self.mainpyfile,
                          self.should_break_here(frame),
                          self.should_stop_here(frame))
-                      
+
+        # next lines allow to focus debugging on only one thread
+        if self.debugged_thread_ident is None:
+            self.debugged_thread_ident = threading.currentThread().ident
+            self.debugged_thread_name = threading.currentThread().name
+        else:
+            if threading.currentThread().ident != self.debugged_thread_ident:
+                return
+
         # Acquire Breakpoint Lock before sending break command to remote client
         self._active_breakpoint_lock.acquire()
         self.status = 'stopped'
