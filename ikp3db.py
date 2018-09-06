@@ -24,6 +24,8 @@ import datetime
 import io
 import ctypes
 import cgi
+import enum
+import termcolor
 
 import iksettrace3
 
@@ -54,15 +56,6 @@ __version__ = "1.4"
 # _logger.{{domain}}_{{level}}(*args)
 # eg: _logger.x_debug("error in %s", the_error)
 #
-class ANSIColors(object):
-    MAGENTA = '\033[95m'    
-    BLUE = '\033[94m'       # debug
-    GREEN = '\033[92m'      # info
-    YELLOW = '\033[93m'     # warning
-    RED = '\033[91m'        # error
-    BOLD = '\033[1m'        # critical
-    UNDERLINE = '\033[4m'
-    ENDC = '\033[0m'
 
 class IKPdbLoggerError(Exception):
     pass
@@ -70,7 +63,7 @@ class IKPdbLoggerError(Exception):
 class MetaIKPdbLogger(type):
     def __getattr__(cls, name):
         domain, level_name = name.split('_')
-        level = IKPdbLogger.LEVELS.get(level_name, None)
+        level = IKPdbLogger.LEVELS[level_name.upper()]
         if domain not in IKPdbLogger.DOMAINS or not level:
             raise IKPdbLoggerError("'%s' is not valid logging domain and level combination !" % name)
             
@@ -83,48 +76,33 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     - avoid problem while debugging programs that reconfigure logging system wide.
     - allow IKP3db debugging...
     """
-    
+
+    class LEVELS(enum.Enum):
+        NOLOG = 0
+        DEBUG = 10
+        INFO = 20
+        WARNING = 30
+        ERROR = 40
+        CRITICAL = 50
+
+    # Level to color mapping
+    COLORS = ["blue", "blue", "green", "yellow", "red", "red"]
+
     enabled = False
-    TEMPLATES = [
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",    # nolog    0
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",    # debug    1
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",     # info     2
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",  # warning  3
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",    # error    4
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s", # critical 5
-    ]
-
-    # Levels
-    CRITICAL = 50
-    ERROR = 40
-    WARNING= 30
-    INFO = 20
-    DEBUG = 10
-    NOLOG= 0
-
-    # Levels by name
-    LEVELS = {
-        "critical": 50,
-        "error": 40,
-        "warning": 30,
-        "info": 20, 
-        "debug": 10,
-        "nolog": 0,
-    }
+    _ansi = True
 
     # Domains and domain's level
-    DOMAINS = {
-        "n": 20,
-        "b": 20,
-        "e": 20,
-        "x": 20,
-        "f": 20,
-        "p": 20,
-        "g": 20
-    }
+    DOMAINS = dict.fromkeys("nbexfpg", LEVELS.INFO)
 
     @classmethod
-    def setup(cls, ikpdb_log_arg):
+    def templates(cls, level):
+        def _colored(*args, **kwargs):
+            return termcolor.colored(*args, **kwargs) if IKPdbLogger._ansi else args[0]
+
+        return _colored("IKP3db - %s", attrs=["bold"]) + " %s - " + _colored(IKPdbLogger.LEVELS(level).name, IKPdbLogger.COLORS[level.value // 10]) + " - %s"
+
+    @classmethod
+    def setup(cls, ikpdb_log_arg, ikpdb_log_file_arg=None):
         """ activates DEBUG logging level based on the `ikpdb_log_arg` 
         parameter string.
         
@@ -157,6 +135,13 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
             - `x` is the `Execution` domain
             - `debug` is the logging level
         """
+
+        if ikpdb_log_file_arg:
+            IKPdbLogger.log_file = open(ikpdb_log_file_arg, "w")
+            IKPdbLogger._ansi = False
+        else:
+            IKPdbLogger.log_file = sys.stderr
+
         if not ikpdb_log_arg:
             return
         
@@ -169,12 +154,12 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     @classmethod
     def _log(cls, domain, level, message, *args):
         ts = datetime.datetime.now().strftime('%H:%M:%S,%f')
-        if level >= IKPdbLogger.DOMAINS[domain]:
+        if level.value >= IKPdbLogger.DOMAINS[domain].value:
             try:
                 string = message % args
             except:
                 string = message+"".join([str(e) for e in args])
-            print(IKPdbLogger.TEMPLATES[level//10] % (domain, ts, string,), file=sys.stderr, flush=True) 
+            print(IKPdbLogger.templates(level) % (domain, ts, string,), file=IKPdbLogger.log_file, flush=True)
 
 _logger = IKPdbLogger
 
@@ -1920,6 +1905,10 @@ def main():
                         dest="IKPDB_LOG",
                         default='',
                         help="Logger command string.")
+    parser.add_argument("-ik_l_f", "--ikpdb-log-file",
+                        dest="IKPDB_LOG_FILE",
+                        default=None,
+                        help="Log file.")
     parser.add_argument("-ik_w", "--ikpdb-welcome",
                         dest="IKPDB_SEND_WELCOME_MESSAGE",
                         default=True,
@@ -1957,7 +1946,7 @@ def main():
         print(__version__)
         sys.exit(0)
     
-    _logger.setup(cmd_line_args.IKPDB_LOG)
+    _logger.setup(cmd_line_args.IKPDB_LOG, cmd_line_args.IKPDB_LOG_FILE)
 
     # We modify sys.argv to reflect command line of
     # debugged script with all IKP3db args removed
