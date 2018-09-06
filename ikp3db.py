@@ -63,7 +63,10 @@ class IKPdbLoggerError(Exception):
 class MetaIKPdbLogger(type):
     def __getattr__(cls, name):
         domain, level_name = name.split('_')
-        level = IKPdbLogger.LEVELS[level_name.upper()]
+        try:
+            level = IKPdbLogger.LEVELS[level_name.upper()]
+        except KeyError:
+            level = None
         if domain not in IKPdbLogger.DOMAINS or not level:
             raise IKPdbLoggerError("'%s' is not valid logging domain and level combination !" % name)
             
