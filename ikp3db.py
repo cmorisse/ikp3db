@@ -92,7 +92,6 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     COLORS = ["blue", "blue", "green", "yellow", "red", "red"]
 
     enabled = False
-    _ansi = True
 
     # Domains and domain's level
     DOMAINS = dict.fromkeys("nbexfpg", LEVELS.INFO)
@@ -100,13 +99,13 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     @classmethod
     def templates(cls, level):
         def _colored(*args, **kwargs):
-            return termcolor.colored(*args, **kwargs) if IKPdbLogger._ansi else args[0]
+            return args[0] if IKPdbLogger._nocolor else termcolor.colored(*args, **kwargs)
 
         return _colored("IKP3db - %s", attrs=["bold"]) + " %s - " + _colored(IKPdbLogger.LEVELS(level).name, IKPdbLogger.COLORS[level.value // 10]) + " - %s"
 
     @classmethod
-    def setup(cls, ikpdb_log_arg, ikpdb_log_file_arg=None):
-        """ activates DEBUG logging level based on the `ikpdb_log_arg` 
+    def setup(cls, ikpdb_log_arg, ikpdb_log_nocolor_arg=False, ikpdb_log_file_arg=None):
+        """ activates DEBUG logging level based on the `ikpdb_log_arg`
         parameter string.
         
         `ikpdb_log_arg` corresponds to the `--ikpdb-log` command line argument.
@@ -139,12 +138,8 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
             - `debug` is the logging level
         """
 
-        if ikpdb_log_file_arg:
-            IKPdbLogger.log_file = open(ikpdb_log_file_arg, "w")
-            IKPdbLogger._ansi = False
-        else:
-            IKPdbLogger.log_file = sys.stderr
-
+        IKPdbLogger._nocolor = ikpdb_log_nocolor_arg
+        IKPdbLogger.log_file = open(ikpdb_log_file_arg, "w") if ikpdb_log_file_arg else sys.stderr
         if not ikpdb_log_arg:
             return
         
@@ -1912,6 +1907,10 @@ def main():
                         dest="IKPDB_LOG_FILE",
                         default=None,
                         help="Log file.")
+    parser.add_argument("-ik_l_nc", "--ikpdb-log-nocolor",
+                        dest="IKPDB_LOG_NOCOLOR",
+                        action="store_true",
+                        help="Don't show colored output.")
     parser.add_argument("-ik_w", "--ikpdb-welcome",
                         dest="IKPDB_SEND_WELCOME_MESSAGE",
                         default=True,
@@ -1948,8 +1947,8 @@ def main():
     if cmd_line_args.IKPDB_VERSION:
         print(__version__)
         sys.exit(0)
-    
-    _logger.setup(cmd_line_args.IKPDB_LOG, cmd_line_args.IKPDB_LOG_FILE)
+
+    _logger.setup(cmd_line_args.IKPDB_LOG, cmd_line_args.IKPDB_LOG_NOCOLOR, cmd_line_args.IKPDB_LOG_FILE)
 
     # We modify sys.argv to reflect command line of
     # debugged script with all IKP3db args removed
