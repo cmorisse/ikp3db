@@ -25,7 +25,6 @@ import io
 import ctypes
 import cgi
 import enum
-import termcolor
 
 import iksettrace3
 
@@ -80,6 +79,13 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     - allow IKP3db debugging...
     """
 
+    class COLORS(enum.Enum):
+        DEFAULT = 0
+        RED = 31
+        GREEN = 32
+        YELLOW = 33
+        BLUE = 34
+
     class LEVELS(enum.Enum):
         NOLOG = 0
         DEBUG = 10
@@ -89,7 +95,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
         CRITICAL = 50
 
     # Level to color mapping
-    COLORS = ["blue", "blue", "green", "yellow", "red", "red"]
+    LEVEL_COLORS = [COLORS.BLUE, COLORS.BLUE, COLORS.GREEN, COLORS.YELLOW, COLORS.RED, COLORS.RED]
 
     enabled = False
 
@@ -98,10 +104,10 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
 
     @classmethod
     def templates(cls, level):
-        def _colored(*args, **kwargs):
-            return args[0] if IKPdbLogger._nocolor else termcolor.colored(*args, **kwargs)
+        def _colored(text, color=IKPdbLogger.COLORS.DEFAULT, bold=False):
+            return text if IKPdbLogger._nocolor else "\033[%d%sm%s\033[0m" % (color.value, ";1" if bold else "", text)
 
-        return _colored("IKP3db - %s", attrs=["bold"]) + " %s - " + _colored(IKPdbLogger.LEVELS(level).name, IKPdbLogger.COLORS[level.value // 10]) + " - %s"
+        return _colored("IKP3db - %s", bold=True) + " %s - " + _colored(IKPdbLogger.LEVELS(level).name, IKPdbLogger.LEVEL_COLORS[level.value // 10]) + " - %s"
 
     @classmethod
     def setup(cls, ikpdb_log_arg, ikpdb_log_nocolor_arg=False, ikpdb_log_file_arg=None):
