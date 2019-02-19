@@ -1140,7 +1140,7 @@ class IKPdb(object):
                 "ident": thread_ident,
                 "name": thread.name,
                 "is_debugger": thread_ident == self.debugger_thread_ident,
-                "debugged": thread_ident == self.debugged_thread_ident
+                "is_debugged": thread_ident == self.debugged_thread_ident
             }
         return thread_list
             
