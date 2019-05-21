@@ -28,7 +28,7 @@ setup(
     py_modules = ['ikp3db'],
     #package_dir={'': 'src'},
     license='MIT',
-    author='Cyril MORISSE, Audaxis',
+    author='Cyril MORISSE',
     author_email='cmorisse@boxes3.net',
     description="A hackable CPython 3.6+ remote debugger designed for the Web and online IDE integration. Fork of IKPdb.",
     long_description = long_description,

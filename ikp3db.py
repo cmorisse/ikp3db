@@ -1937,11 +1937,11 @@ def main():
                         default=None,
                         help="Allows to force debugger's _client_ Current Working Directory. Useful "
                              "for remote debugging.")
-    parser.add_argument("-ik_nvc", "--ikpdb-no-version-check",
-                        dest="IKPDB_NO_VERSION_CHECK",
+    parser.add_argument("-ik_vc", "--ikpdb-version-check",
+                        dest="IKPDB_VERSION_CHECK",
                         action='store_true',
                         default=False,
-                        help="Disable version check on 'pypi.python.org'.")
+                        help="Enable version check on 'pypi.python.org'.")
     parser.add_argument("-ik_v", "--ikpdb-version",
                         dest="IKPDB_VERSION",
                         action='store_true',
@@ -2026,7 +2026,7 @@ def main():
                   working_directory=cmd_line_args.IKPDB_WORKING_DIRECTORY,
                   client_working_directory=cmd_line_args.IKPDB_CLIENT_WORKING_DIRECTORY)
 
-    if not cmd_line_args.IKPDB_NO_VERSION_CHECK:
+    if cmd_line_args.IKPDB_VERSION_CHECK:
         check_version()
 
     if cmd_line_args.IKPDB_SEND_WELCOME_MESSAGE:  
