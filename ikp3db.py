@@ -1742,6 +1742,24 @@ class IKPdb(object):
 
             elif command == 'suspend':
                 _logger.x_debug("suspend(%s)", args)
+                target_thread_ident = args.get('thread_ident')
+                if self.status == 'stopped':
+                    remote_client.reply(
+                        obj,
+                        None,
+                        command_exec_status='error',
+                        error_messages=["Cannot call 'suspend' when debugged program is already paused."]
+                    )
+                elif target_thread_ident != self.debugged_thread_ident:
+                    sdt_result = self.set_debugged_thread(target_thread_ident)
+                    if sdt_result['error']:
+                        remote_client.reply(
+                            obj,
+                            None,
+                            command_exec_status='error',
+                            error_messages=[sdt_result['error']]
+                        )
+                else:
                 # We return a running status which is True at that point. Next 
                 # programBreak will change status to 'stopped'
                 remote_client.reply(obj, {'executionStatus': 'running'})
