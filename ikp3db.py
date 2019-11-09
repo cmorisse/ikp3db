@@ -959,6 +959,17 @@ class IKPdb(object):
             frame_browser = frame_browser.f_back
         return frames        
 
+    def lookup_frame(self, start_frame, frame_id):
+        """ Given the bottom frame of a stack trace returns the frame whose id is
+        frame_id or None.
+        """
+        frame_browser = start_frame
+        while hasattr(frame_browser, 'f_back') and frame_browser.f_back != self.frame_beginning:
+            if id(frame_browser) == frame_id:
+                return frame_browser
+            frame_browser = frame_browser.f_back
+        return None
+
     def extract_frame_variables(self, frame, f_locals, f_globals):
         locals_vars_list = []
         globals_vars_list = []
@@ -1322,6 +1333,22 @@ class IKPdb(object):
                     
                 _logger.e_debug("    => %s", result)
                 remote_client.reply(command['obj'], result, 
+                                    command_exec_status=command_exec_status,
+                                    error_messages=error_messages)
+
+            elif command['cmd'] == 'getFrameVariables':
+                _logger.f_info("command=%s", command)
+                error_messages = []
+                var_frame = self.lookup_frame(frame, command['frame_id'])
+                vars_list = self.extract_frame_variables(
+                    var_frame,
+                    command['f_locals'],
+                    command['f_globals']
+                )
+                result = vars_list['f_locals'] + vars_list['f_globals']
+                command_exec_status = 'ok'
+                _logger.f_debug("  frame_variables => %s", result)
+                remote_client.reply(command['obj'], result,
                                     command_exec_status=command_exec_status,
                                     error_messages=error_messages)
 
@@ -1851,8 +1878,24 @@ class IKPdb(object):
                                             command_exec_status=command_exec_status,
                                             error_messages=error_messages)
 
+            elif command == 'getFrameVariables':  # Returns all variables for a Frame
+                _logger.f_debug("getFrameVariables(%s)", args)
+                if self.status == 'stopped':
+                    self._command_q.put({
+                        'cmd': command,
+                        'obj': obj,
+                        'frame_id': args['frame_id'],
+                        'f_locals': args['f_locals'],
+                        'f_globals': args['f_globals']
+                    })
+                    # reply will be done in _tracer() when result is available
                 else:
-                    remote_client.reply(obj, {'value': None, 'type': None})
+                    result = {}
+                    command_exec_status = 'error'
+                    error_messages = ["IKP3db received 'getFrameVariables' command while debugged program is not paused."]
+                    remote_client.reply(obj, result,
+                                        command_exec_status=command_exec_status,
+                                        error_messages=error_messages)
 
             elif command == 'setVariable':
                 _logger.e_debug("setVariable(%s)", args)
