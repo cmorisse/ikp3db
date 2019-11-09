@@ -870,10 +870,10 @@ class IKPdb(object):
             a_var_value = None
             if hasattr(o, '__dict__'):
                 for a_var_name, a_var_value in o.__dict__.items():
-                    if (not a_var_name.startswith('__') 
-                        and not type(a_var_value) in (types.ModuleType, 
+                    if (not a_var_name.startswith('__') and not
+                        type(a_var_value) in (types.ModuleType,
                                                       types.MethodType, 
-                                                      types.FunctionType,)):
+                                              types.FunctionType,)):  # noqa
                         children_count = self.object_properties_count(a_var_value)
                         v_name, v_value, v_type = self.extract_name_value_type(
                             a_var_name,
@@ -940,16 +940,6 @@ class IKPdb(object):
                             hex(id(frame_browser.f_back)),
                             hex(id(self.frame_beginning)))
 
-            # At root frame, globals == locals so we dump only globals
-            if hasattr(frame_browser.f_back, 'f_back')\
-                    and frame_browser.f_back.f_back != self.frame_beginning:
-                locals_vars_list = self.extract_object_properties(frame_browser.f_locals,
-                                                                  limit_size=True)
-            else:
-                locals_vars_list = []
-                                
-            globals_vars_list = self.extract_object_properties(frame_browser.f_globals,
-                                                               limit_size=True)
             # normalize path sent to debugging client
             file_path = self.normalize_path_out(frame_browser.f_code.co_filename)
 
@@ -959,15 +949,36 @@ class IKPdb(object):
                 'name': frame_name,
                 'line_number': frame_browser.f_lineno,  # Warning 1 based
                 'file_path': file_path,
-                'f_locals': locals_vars_list + globals_vars_list,
-                'thread': current_thread.ident,
+                'thread_ident': current_thread.ident,
                 'thread_name': current_thread.name
             }
+            if self.debug_protocol == 'c9':
+                remote_frame.update(self.extract_frame_variables(frame, True, True))
+
             frames.append(remote_frame)
             frame_browser = frame_browser.f_back
         return frames        
 
-    def evaluate(self, frame_id, expression, global_context=False, disable_break=False):
+    def extract_frame_variables(self, frame, f_locals, f_globals):
+        locals_vars_list = []
+        globals_vars_list = []
+        if hasattr(frame.f_back, 'f_back') and frame.f_back.f_back != self.frame_beginning:
+            if f_locals:
+                locals_vars_list = self.extract_object_properties(frame.f_locals,
+                                                                  limit_size=True)
+            if f_globals:
+                globals_vars_list = self.extract_object_properties(frame.f_globals,
+                                                                   limit_size=True)
+        else:
+            if f_locals:
+                locals_vars_list = self.extract_object_properties(frame.f_globals,
+                                                                  limit_size=True)
+        return {
+            'f_locals': locals_vars_list,
+            'f_globals': globals_vars_list,
+        }
+
+    def evaluate(self, frame_id, expression, context=False, disable_break=False,
         """Evaluates 'expression' in the context of the frame identified by
         'frame_id' or globally.
         Breakpoints are disabled depending on 'disable_break' value.
@@ -1142,7 +1153,7 @@ class IKPdb(object):
         case user click on 'stepInto' on a 'no call' line.
         """
         # TODO: Optimization => defines a set of modules / names where _tracer
-        # is never registered. This will replace skip
+        # is never registered. This will allow to 'skip' some modules
         # if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
         #    return False
 
@@ -1183,17 +1194,17 @@ class IKPdb(object):
         Information from this list can be used to swap thread being debugged.
         """
         thread_list = {}
-        for thread in threading.enumerate():
-            thread_ident = thread.ident
+        for a_thread in threading.enumerate():
+            thread_ident = a_thread.ident
+            is_debugged = thread_ident == self.debugged_thread_ident
             thread_list[thread_ident] = {
                 "ident": thread_ident,
-                "name": thread.name,
+                "name": "*" + a_thread.name if is_debugged else a_thread.name,
                 "is_debugger": thread_ident == self.debugger_thread_ident,
-                "is_debugged": thread_ident == self.debugged_thread_ident
+                "is_debugged": is_debugged
             }
         return thread_list
             
-    
     def set_debugged_thread(self, target_thread_ident=None):
         """ Allows to reset or set the thread to debug. """
         if target_thread_ident is None:
@@ -1266,8 +1277,9 @@ class IKPdb(object):
 
         remote_client.send('programBreak', 
                            frames=frames,
-                           threads= self.get_threads(),
-                           result={'executionStatus': 'stopped'},  #=self.status
+                           threads=self.get_threads(),
+                           thread_ident=self.debugged_thread_ident,
+                           result={'executionStatus': 'stopped'},  # =self.status
                            warning_messages=warning_messages,
                            exception=exception)
                            
@@ -1333,6 +1345,12 @@ class IKPdb(object):
                                     command_exec_status=command_exec_status,
                                     error_messages=error_messages)
                                     
+            elif command['cmd'] == 'getStackTrace':
+                remote_client.reply(command['obj'],
+                                    frames,
+                                    command_exec_status='ok',
+                                    error_messages=[])
+
             elif command['cmd'] == '_InternalQuit':
                 _logger.x_critical("Exiting tracer upon reception of _Internal"
                                    "Quit  command")
@@ -1363,7 +1381,7 @@ class IKPdb(object):
                         or frame == self.frame_stop
                         or frame == self.frame_return
                         or self.frame_suspend
-                        or self.should_break_here(frame)):
+                 or self.should_break_here(frame)):  # noqa
                 self._line_tracer(frame)
             
             # self.should_break_here() inlined version 
@@ -1783,7 +1801,22 @@ class IKPdb(object):
             elif command == 'stepOut':
                 _logger.x_debug("stepOut(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._command_q.put({'cmd':'stepOut'})
+                self._command_q.put({'cmd': 'stepOut'})
+
+            elif command == 'getStackTrace':
+                _logger.e_debug("getStackTrace(%s)", args)
+                if self.status == 'stopped':
+                    self._command_q.put({
+                        'cmd': 'getStackTrace',
+                        'obj': obj
+                    })  # reply will be done in _tracer() where result is available
+                else:
+                    remote_client.reply(
+                        obj,
+                        None,
+                        command_exec_status='failed',
+                        error_messages=["Cannot call getStackTrace when debugged program is not paused."]
+                    )
 
             elif command == 'evaluate':
                 _logger.e_debug("evaluate(%s)", args)
