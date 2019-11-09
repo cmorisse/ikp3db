@@ -459,11 +459,11 @@ class IKBreakpoint(object):
     :type enabled: bool
         
     """
-    breakpoints_files = {}  #: list of lines indexed by canonical file names
-    breakpoints_by_file_and_line = {}  #: list of breakpoints indexed by (file_name, line)
-    breakpoints_by_number = []  #: list of breakpoints indexed by number.
+    breakpoints_files = {}  #: dict breakpoint lines. [file_name] => [lines,...]
+    breakpoints_by_file_and_line = {}  #: dict of breakpoints. [file_name, line] => IKBreakpoint()
+    breakpoints_by_number = []  #: list of IKBreakpoints indexed by number.
     next_breakpoint_number = 0  #: Used to allocate next breakpoint number.
-    any_active_breakpoint = False #: False when there is no active breakpoint.
+    any_active_breakpoint = False  #: False when there is no active breakpoint.
     
     def __init__(self, file_name, line_number, condition=None, enabled=True):
         self.file_name = file_name    # In canonical form!
@@ -486,13 +486,23 @@ class IKBreakpoint(object):
     def clear(self):
         """ Clear a breakpoint by removing it from all lists.
         """
-        del IKBreakpoint.breakpoints_by_file_and_line[self.file_name, self.line_number]
         IKBreakpoint.breakpoints_by_number[self.number] = None
         IKBreakpoint.breakpoints_files[self.file_name].remove(self.line_number)
+        del IKBreakpoint.breakpoints_by_file_and_line[self.file_name, self.line_number]
         if len(IKBreakpoint.breakpoints_files[self.file_name]) == 0:
             del IKBreakpoint.breakpoints_files[self.file_name]
         IKBreakpoint.update_active_breakpoint_flag()
 
+    @classmethod
+    def clear_file_breakpoints(cls, file_name):
+        """ Clear all breakpoint in a file identified by it's canonical name.
+        :param file_name: canonical normalized file name
+        """
+        bp_lines = IKBreakpoint.breakpoints_files.get(file_name, []).copy()
+        for bp_line in bp_lines:
+            bp_to_del = IKBreakpoint.breakpoints_by_file_and_line[file_name, bp_line]
+            bp_to_del.clear()
+        return True
 
     @classmethod
     def dump_breakpoints(cls, title=''):
@@ -1526,6 +1536,22 @@ class IKPdb(object):
             self.disable_tracing()
         return None
 
+    def clear_breakpoints(self, file_name_normalized):
+        """ Delete all breakpoint in specified file.
+
+        :param file_name: normalized file_name
+        :return: an error message or None
+        """
+        c_file_name = self.canonic(file_name_normalized)
+        res = IKBreakpoint.clear_file_breakpoints(c_file_name)
+        if not res:
+            return "Failed to clear all breakpoints in file '%s'." % c_file_name
+        if self.pending_stop or IKBreakpoint.any_active_breakpoint:
+            self.enable_tracing()
+        else:
+            self.disable_tracing()
+        return None
+
     def _runscript(self, filename):
         """ Launchs debugged program execution using the execfile() builtin.
             
@@ -1682,6 +1708,29 @@ class IKPdb(object):
                     else:
                         command_exec_status = 'ok'
                 remote_client.reply(obj, result, 
+                                    command_exec_status=command_exec_status,
+                                    error_messages=error_messages)
+
+            elif command == "clearBreakpoints":
+                _logger.b_debug("clearBreakpoints(%s)", args)
+                file_name = args.get('fileName', None)
+                if file_name is None:
+                    result = {}
+                    msg = "clearBreakpoints() missing required 'fileName' parameter."
+                    error_messages = [msg]
+                    command_exec_status = 'error'
+                else:
+                    file_name_normalized = self.normalize_path_in(file_name)
+                    err = self.clear_breakpoints(file_name_normalized)
+                    if err:
+                        msg = "clearBreakpoints(%s) failed to delete breakpoints (%s)." % (file_name, err)
+                        _logger.g_error(msg)
+                        error_messages = [msg]
+                        command_exec_status = 'error'
+                    else:
+                        error_messages = []
+                        command_exec_status = 'ok'
+                remote_client.reply(obj, {},
                                     command_exec_status=command_exec_status,
                                     error_messages=error_messages)
 
