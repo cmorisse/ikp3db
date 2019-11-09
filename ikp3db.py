@@ -402,6 +402,8 @@ class IKPdbConnectionHandler(object):
 ##
 # Debugger
 #
+remote_client = None
+client_connection = None
 
 
 class IKPdbQuit(Exception):
