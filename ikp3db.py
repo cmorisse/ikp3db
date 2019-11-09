@@ -32,6 +32,7 @@ import iksettrace3
 ikpdb = None 
 __version__ = "1.4.1"
 
+
 ##
 # Logging System
 # IKP3db has it's own logging system distinct from python logging to
@@ -47,6 +48,7 @@ __version__ = "1.4.1"
 # - e,E: Expression evaluation
 # - x,X: Execution 
 # - f,F: Frame 
+# - p,P: Path
 # - g,G: Global debugger
 #
 # Logging support the same notion of level as python logging.
@@ -64,9 +66,11 @@ class ANSIColors(object):
     UNDERLINE = '\033[4m'
     ENDC = '\033[0m'
 
+
 class IKPdbLoggerError(Exception):
     pass
     
+
 class MetaIKPdbLogger(type):
     def __getattr__(cls, name):
         domain, level_name = name.split('_')
@@ -78,6 +82,7 @@ class MetaIKPdbLogger(type):
             return cls._log(domain, level, *args, **kwargs)
         return wrapper
 
+
 class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     """ IKP3db implements it's own logging system to:
     - avoid problem while debugging programs that reconfigure logging system wide.
@@ -86,21 +91,21 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     
     enabled = False
     TEMPLATES = [
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",    # nolog    0
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",    # debug    1
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",     # info     2
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",  # warning  3
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",    # error    4
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s", # critical 5
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",     # nolog    0
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",     # debug    1
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",      # info     2
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",   # warning  3
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",     # error    4
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s",  # critical 5
     ]
 
     # Levels
     CRITICAL = 50
     ERROR = 40
-    WARNING= 30
+    WARNING = 30
     INFO = 20
     DEBUG = 10
-    NOLOG= 0
+    NOLOG = 0
 
     # Levels by name
     LEVELS = {
@@ -176,6 +181,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
                 string = message+"".join([str(e) for e in args])
             print(IKPdbLogger.TEMPLATES[level//10] % (domain, ts, string,), file=sys.stderr, flush=True) 
 
+
 _logger = IKPdbLogger
 
 
@@ -184,6 +190,7 @@ _logger = IKPdbLogger
 #
 class IKPdbConnectionError(Exception):
     pass
+
 
 class IKPdbConnectionHandler(object):
     """ IKPdbConnectionHandler manages a connection with a remote client once
