@@ -76,7 +76,7 @@ class MetaIKPdbLogger(type):
         domain, level_name = name.split('_')
         level = IKPdbLogger.LEVELS.get(level_name, None)
         if domain not in IKPdbLogger.DOMAINS or not level:
-            raise IKPdbLoggerError("'%s' is not valid logging domain and level combination !" % name)
+            raise IKPdbLoggerError("'%s' is not valid logging domain and level combination!" % name)
             
         def wrapper(*args, **kwargs):
             return cls._log(domain, level, *args, **kwargs)
@@ -153,7 +153,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
         Any `ikpdb_log_arg` value different from the letters above (eg: '9') 
         activates `INFO`  level logging on all domains.
         
-        To log, use::
+        To log, use:
         
             _logger.x_debug("useful information")
     
@@ -178,8 +178,9 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
             try:
                 string = message % args
             except:
-                string = message+"".join([str(e) for e in args])
-            print(IKPdbLogger.TEMPLATES[level//10] % (domain, ts, string,), file=sys.stderr, flush=True) 
+                string = message + "".join([str(e) for e in args])
+            print(IKPdbLogger.TEMPLATES[level // 10] % (domain, ts, string,),
+                 file=sys.stderr, flush=True)
 
 
 _logger = IKPdbLogger
@@ -201,7 +202,7 @@ class IKPdbConnectionHandler(object):
     ``length={{integer length of json_message_body below}}{{MAGIC_CODE}}{{json_dump_of_message_body}}``
     
     This class contains methods to receive, send and reply to such messages.
-    """
+    """  # noqa
     MAGIC_CODE = u"LLADpcdtbdpac"
     MESSAGE_TEMPLATE = u"length=%%i%s%%s" % MAGIC_CODE
     
@@ -340,14 +341,14 @@ class IKPdbConnectionHandler(object):
                                     "network loop as ikpdb state is 'terminated'.")
                     return {    
                         'command': '_InternalQuit',
-                        'args':{}
+                        'args': {}
                     }
                 continue
 
             except socket.error as socket_err:
                 if ikpdb.status == 'terminated':
                     return {'command': '_InternalQuit', 
-                            'args':{'socket_error_number': socket_err.errno,
+                            'args': {'socket_error_number': socket_err.errno,
                                     'socket_error_str': socket_err.strerror}}
                 continue
             
@@ -358,7 +359,7 @@ class IKPdbConnectionHandler(object):
                 print("".join(traceback.format_stack()))
                 return {    
                     'command': '_InternalQuit',
-                    'args':{
+                    'args': {
                         "error": exc.__class__.__name__,
                         "message": exc.message
                     }
@@ -402,9 +403,11 @@ class IKPdbConnectionHandler(object):
 # Debugger
 #
 
+
 class IKPdbQuit(Exception):
     """A dummy Exception used by debugger to quit debugged program."""
     pass
+
 
 def IKPdbRepr(t):
     """ A function that returns a type representation suitable for debugger GUI.
@@ -417,6 +420,7 @@ def IKPdbRepr(t):
     except:
         result = "IKPdbReprError"
     return result
+
 
 class IKBreakpoint(object):
     """ IKBreakpoint implements and manages IKP3db Breakpoints. 
@@ -473,7 +477,7 @@ class IKBreakpoint(object):
         IKBreakpoint.breakpoints_by_number.append(self)
         IKBreakpoint.breakpoints_by_file_and_line[file_name, line_number] = self
         IKBreakpoint.breakpoints_files[file_name] = \
-            IKBreakpoint.breakpoints_files.get(file_name, [])+[line_number]
+            IKBreakpoint.breakpoints_files.get(file_name, []) + [line_number]
         if enabled:
             IKBreakpoint.any_active_breakpoint = True            
 
@@ -492,7 +496,7 @@ class IKBreakpoint(object):
         """ Checks all breakpoints to find wether at least one is active and 
         update `any_active_breakpoint` accordingly.
         """
-        cls.any_active_breakpoint=any([bp.enabled for bp in cls.breakpoints_by_number if bp])
+        cls.any_active_breakpoint = any([bp.enabled for bp in cls.breakpoints_by_number if bp])
 
     @classmethod
     def lookup_effective_breakpoint(cls, file_name, line_number, frame):
@@ -579,6 +583,7 @@ class IKBreakpoint(object):
         cls.update_active_breakpoint_flag()
         return
 
+
 class IKPdb(object):
     """ Main debugger class.
 
@@ -633,7 +638,7 @@ class IKPdb(object):
 
         # stop management
         self.pending_stop = False  # True if any of frame_xxxx is set
-        self.frame_stop = None # stepOver and stepInto
+        self.frame_stop = None  # stepOver and stepInto
         self.frame_calling = None  # stepInto
         self.frame_return = None  # stepOut and stepOver
         self.frame_suspend = False  # If true, debugger will stop at next frame
@@ -682,7 +687,7 @@ class IKPdb(object):
             
         # Can we find the file relatively to launch CWD (useful with buildout)
         f = os.path.join(self._CWD, file_name)  
-        if  os.path.exists(f):
+        if os.path.exists(f):
             _logger.p_debug("  => found path relative to self._CWD: '%s'", f)
             return f
 
@@ -728,7 +733,7 @@ class IKPdb(object):
 
     def object_properties_count(self, o):
         """ returns the number of user browsable properties of an object. """
-        o_type = type(o)
+        o_type = type(o)  # noqa
         if isinstance(o, (dict, list, tuple, set)):
             return len(o)
         elif isinstance(o, (type(None), bool, float, 
@@ -737,6 +742,7 @@ class IKPdb(object):
                             types.MethodType, types.FunctionType)):
             return 0
         else:
+            #
             # Following lines are used to debug variables members browsing
             # and counting
             # if False and str(o_type) == "<class 'socket._socketobject'>":
@@ -749,7 +755,7 @@ class IKPdb(object):
             #             if m_name.startswith('__'):
             #                 print "    %s=>False" % (m_name,)
             #                 continue
-            #             if type(m_value) in (types.ModuleType, types.MethodType, types.FunctionType,):
+            #             if type(m_value) in (types.ModuleType, types.MethodType, types.FunctionType,):  # noqa
             #                 print "    %s=>False" % (m_name,)
             #                 continue
             #             print "    %s=>True" % (m_name,)
@@ -759,10 +765,10 @@ class IKPdb(object):
             try:
                 if hasattr(o, '__dict__'):
                     count = len([m_name for m_name, m_value in o.__dict__.items()
-                                  if not m_name.startswith('__') 
-                                    and not type(m_value) in (types.ModuleType, 
+                                  if not m_name.startswith('__') and not
+                                    type(m_value) in (types.ModuleType,
                                                               types.MethodType, 
-                                                              types.FunctionType,) ])
+                                                      types.FunctionType,)])  # noqa
                 else:
                     count = 0
             except:
@@ -817,7 +823,7 @@ class IKPdb(object):
                     'value': v_value,
                     'children_count': children_count,
                 })
-                if do_truncate and idx==MAX_CHILDREN_TO_RETURN-1:
+                if do_truncate and idx == (MAX_CHILDREN_TO_RETURN - 1):
                     var_list.append({
                         'id': None,
                         'name': str(MAX_CHILDREN_TO_RETURN),
@@ -836,13 +842,15 @@ class IKPdb(object):
                                                       types.MethodType, 
                                                       types.FunctionType,)):
                         children_count = self.object_properties_count(a_var_value)
-                        v_name, v_value, v_type = self.extract_name_value_type(a_var_name,
+                        v_name, v_value, v_type = self.extract_name_value_type(
+                            a_var_name,
                                                                                a_var_value, 
-                                                                               limit_size=limit_size)
+                            limit_size=limit_size
+                        )
                         var_list.append({
                             'id': id(a_var_value),
                             'name': v_name,
-                            'type': "%s%s" % (v_type, " [%s]" % children_count if children_count else '',),
+                            'type': "%s%s" % (v_type, " [%s]" % children_count if children_count else '',),  # noqa
                             'value': v_value,
                             'children_count': children_count,
                         })
@@ -956,7 +964,7 @@ class IKPdb(object):
                 result = exec(expression, global_vars, local_vars)
                 result_type = IKPdbRepr(result)
                 result_value = repr(result)
-            except Exception as e:
+            except Exception as e:  # noqa
                 t, result = sys.exc_info()[:2]
                 if isinstance(t, str):
                     result_type = t
@@ -982,7 +990,8 @@ class IKPdb(object):
         if self.CGI_ESCAPE_EVALUATE_OUTPUT:
             result_value = cgi.escape(result_value)
         
-        # We must check that result is json.dump compatible so that it can be sent back to client.
+        # We must check that result is json.dump compatible so that it can be
+        # sent back to client.
         try:
             json.dumps(result_value)
         except:
@@ -1000,8 +1009,8 @@ class IKPdb(object):
         return result_value, result_type
 
     def let_variable(self, frame_id, var_name, expression_value):
-        """ Let a frame's var with a value by building then eval a let 
-        expression with breakoints disabled.
+        """Let a frame's var with a value by building then eval a let
+        expression with breakpoints disabled.
         """
         breakpoints_backup = IKBreakpoint.backup_breakpoints_state()
         IKBreakpoint.disable_all_breakpoints()
@@ -1013,8 +1022,8 @@ class IKPdb(object):
         local_vars = eval_frame.f_locals
         try:
             exec(let_expression, global_vars, local_vars)
-            error_message=""
-        except Exception as e:
+            error_message = ""
+        except Exception as e:  # noqa
             t, result = sys.exc_info()[:2]
             if isinstance(t, str):
                 result_type = t
@@ -1101,17 +1110,17 @@ class IKPdb(object):
         """
         # TODO: Optimization => defines a set of modules / names where _tracer
         # is never registered. This will replace skip
-        #if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
+        # if self.skip and self.is_skipped_module(frame.f_globals.get('__name__')):
         #    return False
 
         # step into
-        if self.frame_calling and self.frame_calling==frame.f_back:
+        if self.frame_calling and self.frame_calling == frame.f_back:
             return True
         # step over
-        if frame==self.frame_stop:  # frame cannot be null
+        if frame == self.frame_stop:  # frame cannot be null
             return True
         # step out
-        if frame==self.frame_return:  # frame cannot be null
+        if frame == self.frame_return:  # frame cannot be null
             return True
         # suspend
         if self.frame_suspend:
@@ -1122,13 +1131,13 @@ class IKPdb(object):
     def should_break_here(self, frame):
         """Check wether there is a breakpoint at this frame."""
         # Next line commented out for performance
-        #_logger.b_debug("should_break_here(filename=%s, lineno=%s) with breaks=%s",
-        #                frame.f_code.co_filename,
-        #                frame.f_lineno,
-        #                IKBreakpoint.breakpoints_by_number)
+        # _logger.b_debug("should_break_here(filename=%s, lineno=%s) with breaks=%s",
+        #                 frame.f_code.co_filename,
+        #                 frame.f_lineno,
+        #                 IKBreakpoint.breakpoints_by_number)
         
         c_file_name = self.canonic(frame.f_code.co_filename)
-        if not c_file_name in IKBreakpoint.breakpoints_files:
+        if c_file_name not in IKBreakpoint.breakpoints_files:
             return False
         bp = IKBreakpoint.lookup_effective_breakpoint(c_file_name, 
                                                       frame.f_lineno, 
@@ -1209,7 +1218,7 @@ class IKPdb(object):
         self._active_breakpoint_lock.acquire()
         self.status = 'stopped'
         frames = self.dump_frames(frame)
-        exception=None
+        exception = None
         warning_messages = []
         if exc_info:
             exception = {
@@ -1311,15 +1320,15 @@ class IKPdb(object):
             # this method. 
             # Code of these methods is still there for reference.
             #
-            #if self.should_stop_here(frame) or self.should_break_here(frame):
+            # if self.should_stop_here(frame) or self.should_break_here(frame):
             #    self._line_tracer(frame)
             # return self._tracer
 
             # should_stop_here() inlined version
             if self.pending_stop and (
-                (self.frame_calling and self.frame_calling==frame.f_back)
-                        or frame==self.frame_stop
-                        or frame==self.frame_return
+                (self.frame_calling and self.frame_calling == frame.f_back)
+                        or frame == self.frame_stop
+                        or frame == self.frame_return
                         or self.frame_suspend
                         or self.should_break_here(frame)):
                 self._line_tracer(frame)
@@ -1378,7 +1387,7 @@ class IKPdb(object):
                     if a_frame == inspect.currentframe():
                         flags.append("current")
                     if flags:
-                        flags_str = "**"+",".join(flags)
+                        flags_str = "**" + ",".join(flags)
                     else:
                         flags_str = ""
                     _logger.x_debug("        => %s, %s:%s(%s) | %s %s" % (a_frame, 
@@ -1397,7 +1406,7 @@ class IKPdb(object):
         """
         _logger.x_debug("entering enable_tracing()")
         # uncomment next line to get debugger tracing info
-        #self.dump_tracing_state("before enable_tracing()")
+        # self.dump_tracing_state("before enable_tracing()")
         
         if not self.tracing_enabled and self.execution_started:
             # Restore or set trace function on all existing frames appart from 
@@ -1412,7 +1421,7 @@ class IKPdb(object):
             iksettrace3._set_trace_on(self._tracer, self.debugger_thread_ident)
             self.tracing_enabled = True
         
-        #self.dump_tracing_state("after enable_tracing()")
+        # self.dump_tracing_state("after enable_tracing()")
         return self.tracing_enabled
 
     def disable_tracing(self):
@@ -1422,12 +1431,12 @@ class IKPdb(object):
         :return: False if tracing has been disabled, True else.
         """
         _logger.x_debug("disable_tracing()")
-        #self.dump_tracing_state("before disable_tracing()")
+        # self.dump_tracing_state("before disable_tracing()")
         if self.tracing_enabled and self.execution_started:
             threading.settrace(None)  # don't trace threads to come
             iksettrace3._set_trace_off()
             self.tracing_enabled = False
-        #self.dump_tracing_state("after disable_tracing()")
+        # self.dump_tracing_state("after disable_tracing()")
         return self.tracing_enabled
 
     def set_breakpoint(self, file_name, line_number, condition=None, enabled=True):
@@ -1505,12 +1514,12 @@ class IKPdb(object):
         """
         import __main__
         __main__.__dict__.clear()
-        __main__.__dict__.update({"__name__"    : "__main__",
-                                  "__file__"    : filename,
-                                  "__builtins__": __builtins__,})
+        __main__.__dict__.update({"__name__": "__main__",
+                                  "__file__": filename,
+                                  "__builtins__": __builtins__, })
 
         self.mainpyfile = self.canonic(filename)
-        #statement = 'execfile(%r)\n' % filename
+        # statement = 'execfile(%r)\n' % filename
         statement = "exec(compile(open('%s').read(), '%s', 'exec'))" % (filename, filename,)
         
         globals = __main__.__dict__
@@ -1608,7 +1617,7 @@ class IKPdb(object):
                     result = {}
                     msg = "changeBreakpointState() error: missing required " \
                           "breakpointNumber parameter."
-                    _logger.g_error("    "+msg)
+                    _logger.g_error("    " + msg)
                     error_messages = [msg]
                     command_exec_status = 'error'
                 else:
@@ -1619,7 +1628,7 @@ class IKPdb(object):
                     error_messages = []
                     if err:
                         msg = "changeBreakpointState() error: \"%s\"" % err
-                        _logger.g_error("    "+msg)
+                        _logger.g_error("    " + msg)
                         error_messages = [msg]
                         command_exec_status = 'error'
                     else:
@@ -1654,7 +1663,7 @@ class IKPdb(object):
                                     error_messages=error_messages)
 
             elif command == 'runScript':
-                #TODO: handle a 'stopAtEntry' arg
+                # TODO: handle a 'stopAtEntry' arg
                 _logger.x_debug("runScript(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
                 run_script_event.set()
@@ -1669,19 +1678,19 @@ class IKPdb(object):
             elif command == 'resume':
                 _logger.x_debug("resume(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._command_q.put({'cmd':'resume'})
+                self._command_q.put({'cmd': 'resume'})
 
-            elif command == 'stepOver':  # <=> Pdb n(ext)
+            elif command == 'stepOver':
                 _logger.x_debug("stepOver(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._command_q.put({'cmd':'stepOver'})
+                self._command_q.put({'cmd': 'stepOver'})
 
-            elif command == 'stepInto':  # <=> Pdb s(tep)
+            elif command == 'stepInto':
                 _logger.x_debug("stepInto(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
-                self._command_q.put({'cmd':'stepInto'})
+                self._command_q.put({'cmd': 'stepInto'})
 
-            elif command == 'stepOut':  # <=> Pdb r(eturn)
+            elif command == 'stepOut':
                 _logger.x_debug("stepOut(%s)", args)
                 remote_client.reply(obj, {'executionStatus': 'running'})
                 self._command_q.put({'cmd':'stepOut'})
@@ -1706,13 +1715,13 @@ class IKPdb(object):
                 if self.tracing_enabled and self.status == 'stopped':
                     if args.get('id'):
                         self._command_q.put({
-                            'cmd':'getProperties',
+                            'cmd': 'getProperties',
                             'obj': obj,
                             'id': args['id']
                         })
                         # reply will be done in _tracer() when result is available
                     else:
-                        result={}
+                        result = {}
                         command_exec_status = 'error'
                         error_messages = ["IKP3db received getProperties command sent without target variable 'id'."]
                         remote_client.reply(obj, result, 
@@ -1726,7 +1735,7 @@ class IKPdb(object):
                 _logger.e_debug("setVariable(%s)", args)
                 if self.tracing_enabled and self.status == 'stopped':
                     self._command_q.put({
-                        'cmd':'setVariable',
+                        'cmd': 'setVariable',
                         'obj': obj,
                         'frame': args['frame'],
                         'name': args['name'],  # TODO: Rework plugin to send var's id
@@ -1766,11 +1775,11 @@ class IKPdb(object):
                 # in order to allow debugged program to shutdown correctly.
                 # This message must NEVER be send by remote client.
                 _logger.e_debug("_InternalQuit(%s)", args)
-                self._command_q.put({'cmd':'_InternalQuit'})
+                self._command_q.put({'cmd': '_InternalQuit'})
                 return
             
             else: # unrecognized command ; just log and ignored
-                _logger.g_critical("Unsupported command '%s' ignored.", command)
+                _logger.g_critical("Unsupported command '%s(%s)' ignored.", command, args)
 
             if IKPdbLogger.enabled:
                 _logger.b_debug("Current breakpoints list [any_active_breakpoint=%s]:", 
@@ -1815,6 +1824,7 @@ def set_trace(a_frame=None):
         a_frame = sys._getframe().f_back
     ikpdb._line_tracer(a_frame)
     return None
+
 
 def post_mortem(trace_back=None, exc_info=None):
     """ Breaks on a traceback and send all execution information to the debugger 
@@ -1868,11 +1878,13 @@ def post_mortem(trace_back=None, exc_info=None):
     _logger.g_info("Post mortem processing finished.")
     return None
 
+
 ##
 # Signal Handler to properly close socket connection
 #
 SIGNALS_DICT = dict((k, v) for v, k in reversed(sorted(signal.__dict__.items()))
                 if v.startswith('SIG') and not v.startswith('SIG_'))
+
 
 def close_connection():
     try:
@@ -1885,13 +1897,14 @@ def close_connection():
     except NameError:
         pass
     
+
 # On SIGINT, SIGTERM shutdown socket and close connection
 # (SIGKILL cannot be caught)
 def signal_handler(signal, frame):
     print("%s received" % SIGNALS_DICT[signal])
     close_connection()
     # Cf. http://tldp.org/LDP/abs/html/exitcodes.html
-    sys.exit(128+signal)
+    sys.exit(128 + signal)
 
 
 def check_version():
@@ -1914,11 +1927,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="IKP3db %s - Inouk Python Debugger for CPython 3.6 and above." % __version__,
                                      epilog="Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis")
-    parser.add_argument("-ik_a","--ikpdb-address", 
+    parser.add_argument("-ik_a", "--ikpdb-address",
                         default='127.0.0.1',
                         dest="IKPDB_ADDRESS",
                         help="Network address on which debugger runs.")
-    parser.add_argument("-ik_p","--ikpdb-port",
+    parser.add_argument("-ik_p", "--ikpdb-port",
                         type=int, 
                         default=15470,
                         dest="IKPDB_PORT",
@@ -1989,7 +2002,7 @@ def main():
 
     # By using argparse.REMAINDER, sys.argv reflects command line of
     # debugged script with all IKP3db args removed
-    mainpyfile =  sys.argv[0]     # Get script filename
+    mainpyfile = sys.argv[0]     # Get script filename
     _logger.g_debug("  mainpyfile = '%s'", mainpyfile)
     if not os.path.exists(mainpyfile):
         print("Error: '%s' does not exist." % mainpyfile)
