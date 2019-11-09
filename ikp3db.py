@@ -1525,11 +1525,12 @@ class IKPdb(object):
         """ Create a breakpoint, register it in the class's lists and returns
         a tuple of (error_message, break_number)
         """
-        c_file_name = self.canonic(file_name)
-        import linecache
+        c_file_name = self.canonic(self.normalize_path_in(file_name))
         line = linecache.getline(c_file_name, line_number)
         if not line:
             return "Line %s:%d does not exist." % (c_file_name, line_number), None
+        bp = IKBreakpoint.breakpoints_by_file_and_line.get((c_file_name, line_number,))
+        if bp is None:
         bp = IKBreakpoint(c_file_name, line_number, condition, enabled)
         if self.pending_stop or IKBreakpoint.any_active_breakpoint:
             self.enable_tracing()
