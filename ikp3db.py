@@ -493,6 +493,27 @@ class IKBreakpoint(object):
             del IKBreakpoint.breakpoints_files[self.file_name]
         IKBreakpoint.update_active_breakpoint_flag()
 
+
+    @classmethod
+    def dump_breakpoints(cls, title=''):
+        _logger.b_debug("Current breakpoints list %s[any_active_breakpoint=%s]:",
+                        "__%s__ " % title if title else '',
+                        cls.any_active_breakpoint)
+        _logger.b_debug("    IKBreakpoint.breakpoints_by_file_and_line:")
+        if not cls.breakpoints_by_file_and_line:
+            _logger.b_debug("        <empty>")
+        for file_line, bp in list(cls.breakpoints_by_file_and_line.items()):
+            _logger.b_debug("        %s => #%s, enabled=%s, condition=%s, %s",
+                            file_line,
+                            bp.number,
+                            bp.enabled,
+                            repr(bp.condition),
+                            bp)
+        _logger.b_debug("    IKBreakpoint.breakpoints_files = %s",
+                        cls.breakpoints_files)
+        _logger.b_debug("    IKBreakpoint.breakpoints_by_number = %s",
+                        cls.breakpoints_by_number)
+
     @classmethod
     def update_active_breakpoint_flag(cls):
         """ Checks all breakpoints to find wether at least one is active and 
@@ -1784,22 +1805,7 @@ class IKPdb(object):
                 _logger.g_critical("Unsupported command '%s(%s)' ignored.", command, args)
 
             if IKPdbLogger.enabled:
-                _logger.b_debug("Current breakpoints list [any_active_breakpoint=%s]:", 
-                                IKBreakpoint.any_active_breakpoint) 
-                _logger.b_debug("    IKBreakpoint.breakpoints_by_file_and_line:")
-                if not IKBreakpoint.breakpoints_by_file_and_line:
-                    _logger.b_debug("        <empty>") 
-                for file_line, bp in list(IKBreakpoint.breakpoints_by_file_and_line.items()):
-                    _logger.b_debug("        %s => #%s, enabled=%s, condition=%s, %s", 
-                                    file_line,
-                                    bp.number,
-                                    bp.enabled,
-                                    repr(bp.condition),
-                                    bp)
-                _logger.b_debug("    IKBreakpoint.breakpoints_files = %s", 
-                                IKBreakpoint.breakpoints_files)
-                _logger.b_debug("    IKBreakpoint.breakpoints_by_number = %s", 
-                                IKBreakpoint.breakpoints_by_number)
+                IKBreakpoint.dump_breakpoints()
 
         
 def set_trace(a_frame=None):
