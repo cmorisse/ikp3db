@@ -234,9 +234,9 @@ class IKPdbConnectionHandler(object):
         _logger.n_debug("Received %s bytes >>>%s<<<", len(msg), msg)
     
     def send(self, command, _id=None, result={}, frames=[], threads=None,
-             error_messages=[], warning_messages=[], info_messages=[],
-             exception=None):
-        """ Build a message from parameters and send it to debugger.
+             thread_ident=None, error_messages=[], warning_messages=[],
+             info_messages=[], exception=None):
+        """ Build a message from parameters and send it to client.
         
         :param command: The command sent to the debugger client.
         :type command: str
@@ -283,6 +283,8 @@ class IKPdbConnectionHandler(object):
             }
             if threads:
                 payload['threads'] = threads
+            if thread_ident:
+                payload['thread_ident'] = thread_ident
             msg = self.encode(payload)
             if self._connection:
                 msg_bytes = bytearray(msg, 'utf-8')
