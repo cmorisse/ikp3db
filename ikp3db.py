@@ -635,10 +635,10 @@ class IKPdb(object):
     Take note that, right now, IKPdb is used as singleton.
     """
     
-    def __init__(self, skip=None, stop_at_first_statement=False, working_directory=None, 
-                 client_working_directory=None):
-        # TODO: manage skip
-        self.skip = set(skip) if skip else None
+    def __init__(self, stop_at_first_statement=False, working_directory=None,
+                 client_working_directory=None, debug_protocol=None):
+
+        self.debug_protocol = debug_protocol or "c9"
         
         self.debugger_thread_ident = None
         self.file_name_cache = {}        
@@ -1327,11 +1327,17 @@ class IKPdb(object):
                 error_messages = []
                 if command.get('id', False):
                     po_value = ctypes.cast(command['id'], ctypes.py_object).value
-                    result={'properties': self.extract_object_properties(po_value) or []}
+                    if self.debug_protocol == 'vscode':
+                        result = self.extract_object_properties(po_value) or []
+                    else:  # c9
+                        result = {'properties': self.extract_object_properties(po_value) or []}
                     command_exec_status = 'ok'
                 else:
-                    result={'properties': self.extract_object_properties(None) or []}
-                    command_exec_status = 'ok'
+                    if self.debug_protocol == 'vscode':
+                        result = []
+                    else:  # c9
+                        result = {'properties': []}
+                    command_exec_status = 'failed'
                     
                 _logger.e_debug("    => %s", result)
                 remote_client.reply(command['obj'], result, 
@@ -1867,7 +1873,7 @@ class IKPdb(object):
                     
             elif command == 'getProperties':
                 _logger.e_debug("getProperties(%s,%s)", args, obj)
-                if self.tracing_enabled and self.status == 'stopped':
+                if self.status == 'stopped':
                     if args.get('id'):
                         self._command_q.put({
                             'cmd': 'getProperties',
@@ -1882,6 +1888,8 @@ class IKPdb(object):
                         remote_client.reply(obj, result, 
                                             command_exec_status=command_exec_status,
                                             error_messages=error_messages)
+                else:
+                    remote_client.reply(obj, {'value': None, 'type': None})
 
             elif command == 'getFrameVariables':  # Returns all variables for a Frame
                 _logger.f_debug("getFrameVariables(%s)", args)
@@ -2096,6 +2104,12 @@ def main():
                         dest="IKPDB_LOG",
                         default='',
                         help="Logger command string.")
+    parser.add_argument("-ik_dp", "--ikpdb-protocol",
+                        default='c9',
+                        type=str,
+                        dest="IKPDB_DEBUG_PROTOCOL",
+                        choices=['c9', 'vscode'],
+                        help="Debug Protocol to use: 'c9' (default) or 'vscode'.")
     parser.add_argument("-ik_w", "--ikpdb-welcome",
                         dest="IKPDB_SEND_WELCOME_MESSAGE",
                         default=True,
@@ -2200,7 +2214,8 @@ def main():
     global ikpdb
     ikpdb = IKPdb(stop_at_first_statement=cmd_line_args.IKPDB_STOP_AT_ENTRY,
                   working_directory=cmd_line_args.IKPDB_WORKING_DIRECTORY,
-                  client_working_directory=cmd_line_args.IKPDB_CLIENT_WORKING_DIRECTORY)
+                  client_working_directory=cmd_line_args.IKPDB_CLIENT_WORKING_DIRECTORY,
+                  debug_protocol=cmd_line_args.IKPDB_DEBUG_PROTOCOL)
 
     if cmd_line_args.IKPDB_VERSION_CHECK:
         check_version()
