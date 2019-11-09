@@ -1225,18 +1225,20 @@ class IKPdb(object):
                 "result": self.get_threads(),
                 "error": ""
             }
-            
         thread_list = self.get_threads()
+        if thread_list[target_thread_ident]['is_debugger']:
+            self.debugged_thread_ident = None
+            self.debugged_thread_name = ''
+            return {
+                "result": self.get_threads(),
+                "error": "",
+                "warning": "Cannot debug IKPdb tracer (sadly...). Debugged Thread has been reset."
+            }
+        
         if target_thread_ident not in thread_list:
             return {
                 "result": None,
                 "error": "No thread with ident:%s." % target_thread_ident
-            }
-        
-        if thread_list[target_thread_ident]['is_debugger']:
-            return {
-                "result": None,
-                "error": "Cannot debug IKPdb tracer (sadly...)."
             }
         
         self.debugged_thread_ident = target_thread_ident
