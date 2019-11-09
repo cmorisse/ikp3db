@@ -21,9 +21,8 @@ import queue
 import types
 import argparse
 import datetime
-import io
 import ctypes
-import cgi
+import linecache
 
 import iksettrace3
 
@@ -992,18 +991,17 @@ class IKPdb(object):
         }
 
     def evaluate(self, frame_id, expression, context=False, disable_break=False,
+                 result_format=None):
         """Evaluates 'expression' in the context of the frame identified by
         'frame_id' or globally.
         Breakpoints are disabled depending on 'disable_break' value.
         Returns a tuple of value and type both as str.
-        Note that - depending on the CGI_ESCAPE_EVALUATE_OUTPUT attribute - value is 
-        escaped.
         """
         if disable_break:
             breakpoints_backup = IKBreakpoint.backup_breakpoints_state()
             IKBreakpoint.disable_all_breakpoints()
 
-        if frame_id and not global_context:
+        if frame_id:
             eval_frame = ctypes.cast(frame_id, ctypes.py_object).value
             global_vars = eval_frame.f_globals
             local_vars = eval_frame.f_locals
@@ -1319,10 +1317,11 @@ class IKPdb(object):
                 break
             
             elif command['cmd'] == 'evaluate':
-                value, result_type = self.evaluate(command['frame'], 
+                value, result_type = self.evaluate(command['frame_id'],
                                                    command['expression'], 
-                                                   command['global'], 
-                                                   disable_break=command['disableBreak'])
+                                                   command['context'],
+                                                   disable_break=command['disableBreak'],
+                                                   result_format=command['valueFormat'])
                 remote_client.reply(command['obj'], {'value': value, 'type': result_type})
 
             elif command['cmd'] == 'getProperties':
@@ -1861,13 +1860,15 @@ class IKPdb(object):
             elif command == 'evaluate':
                 _logger.e_debug("evaluate(%s)", args)
                 if self.tracing_enabled and self.status == 'stopped':
+                    frame_id = args['frameId'] if self.debug_protocol == 'vscode' else args['frame']
                     self._command_q.put({
-                        'cmd':'evaluate',
+                        'cmd': 'evaluate',
                         'obj': obj,
-                        'frame': args['frame'],
+                        'frame_id': frame_id,
                         'expression': args['expression'],
-                        'global': args['global'],
-                        'disableBreak': args['disableBreak']
+                        'context': args['context'],
+                        'disableBreak': args.get('disableBreak', False),
+                        'valueFormat': args.get('valueFormat')
                     })
                     # reply will be done in _tracer() where result is available
                 else:
