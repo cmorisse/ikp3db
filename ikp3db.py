@@ -1381,12 +1381,14 @@ class IKPdb(object):
                                     error_messages=[])
 
             elif command['cmd'] == '_InternalQuit':
-                _logger.x_critical("Exiting tracer upon reception of _Internal"
-                                   "Quit  command")
+                _logger.x_critical("Exiting ikp3db upon reception of '_Internal"
+                                   "Quit' command.")
                 raise IKPdbQuit()                                    
 
             else:
-                _logger.x_critical("Unknown command: %s received by _line_tracer()" % resume_command)
+                _logger.x_critical("Exiting ikp3db upon reception of Unknown com"
+                                   "mand:'%s' received by _line_tracer(). ",
+                                   command['cmd'])
                 raise IKPdbQuit()
 
         self.status = 'running'
