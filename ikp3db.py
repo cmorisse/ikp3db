@@ -1196,48 +1196,50 @@ class IKPdb(object):
         key is thread ident and values thread info.
         Information from this list can be used to swap thread being debugged.
         """
-        thread_list = {}
+        threads_dict = {}
         for a_thread in threading.enumerate():
             thread_ident = a_thread.ident
             is_debugged = thread_ident == self.debugged_thread_ident
-            thread_list[thread_ident] = {
+            threads_dict[thread_ident] = {
                 "ident": thread_ident,
                 "name": "*" + a_thread.name if is_debugged else a_thread.name,
                 "is_debugger": thread_ident == self.debugger_thread_ident,
                 "is_debugged": is_debugged
             }
-        return thread_list
+        return threads_dict
 
     def set_debugged_thread(self, target_thread_ident=None):
         """ Allows to reset or set the thread to debug. """
-        if target_thread_ident is None:
-            self.debugged_thread_ident = None
-            self.debugged_thread_name = ''
-            return {
-                "result": self.get_threads(),
-                "error": ""
-            }
-        thread_list = self.get_threads()
-        if thread_list[target_thread_ident]['is_debugger']:
-            self.debugged_thread_ident = None
-            self.debugged_thread_name = ''
-            return {
-                "result": self.get_threads(),
-                "error": "",
-                "warning": "Cannot debug IKPdb tracer (sadly...). Debugged Thread has been reset."
-            }
+        threads_dict = self.get_threads()
 
-        if target_thread_ident not in thread_list:
+        if target_thread_ident not in threads_dict:
             return {
                 "result": None,
+                "info": "",
                 "error": "No thread with ident:%s." % target_thread_ident
             }
 
+        if target_thread_ident is None or threads_dict[target_thread_ident]['is_debugger']:
+            self.debugged_thread_ident = None
+            self.debugged_thread_name = ''
+            return {
+                "result": threads_dict,
+                "error": "",
+                "info": "Since target thread is '%s', debugged Thread has been"\
+                        " reset.\nNote that IKPdb tracer cannot be debugged"\
+                        " (sadly...). " % (
+                            "IKPdbCommandLoop" if target_thread_ident else None
+                        )
+            }
+
+        target_thread_name = threads_dict[target_thread_ident]['name']
         self.debugged_thread_ident = target_thread_ident
-        self.debugged_thread_name = thread_list[target_thread_ident]['name']
+        self.debugged_thread_name = target_thread_name
         return {
             "result": self.get_threads(),
-            "error": ""
+            "error": "",
+            "info": "Debugged thread is now:%s,%s" % (target_thread_name,
+                                                      target_thread_ident,)
         }
 
     def _line_tracer(self, frame, exc_info=False):
@@ -1792,22 +1794,27 @@ class IKPdb(object):
                         obj,
                         None,
                         command_exec_status='error',
-                        error_messages=["Cannot call 'suspend' when debugged program is already paused."]
+                        error_messages=["Cannot call 'suspend' when debugged "
+                                        "program is already paused."]
                     )
-                elif target_thread_ident != self.debugged_thread_ident:
+                else:
                     sdt_result = self.set_debugged_thread(target_thread_ident)
                     if sdt_result['error']:
-                        remote_client.reply(
-                            obj,
-                            None,
-                            command_exec_status='error',
-                            error_messages=[sdt_result['error']]
-                        )
-                else:
-                    # We return a running status which is True at that point. Next
-                    # programBreak will change status to 'stopped'
-                    remote_client.reply(obj, {'executionStatus': 'running'})
-                    self.setup_suspend()
+                        remote_client.reply(obj,
+                                            None,
+                                            command_exec_status='error',
+                                            error_messages=[sdt_result['error']])
+                    else:
+                        # We return a running status which is True at that point.
+                        # Next programBreak will change status to 'stopped'
+                        remote_client.reply(obj,
+                                            {'executionStatus': 'running',
+                                             'threads': sdt_result['result']},
+                                            command_exec_status='ok',
+                                            info_messages=[sdt_result['info']])
+                        if target_thread_ident != self.debugger_thread_ident:
+                            self.setup_suspend()
+                        # else we only reset debugged thread
 
             elif command == 'resume':
                 _logger.x_debug("resume(%s)", args)
