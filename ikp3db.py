@@ -74,7 +74,8 @@ class MetaIKPdbLogger(type):
         domain, level_name = name.split('_')
         level = IKPdbLogger.LEVELS.get(level_name, None)
         if domain not in IKPdbLogger.DOMAINS or not level:
-            raise IKPdbLoggerError("'%s' is not valid logging domain and level combination!" % name)
+            raise IKPdbLoggerError("'%s' is not valid logging domain and level "
+                                   "combination!" % name)
 
         def wrapper(*args, **kwargs):
             return cls._log(domain, level, *args, **kwargs)
@@ -86,14 +87,13 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
     - avoid problem while debugging programs that reconfigure logging system wide.
     - allow IKP3db debugging...
     """
-
     enabled = False
     TEMPLATES = [
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",     # nolog    0
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",     # debug    1
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",      # info     2
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",   # warning  3
-        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",     # error    4
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mNOLOG\033[0m - %s",  # nolog 0
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[94mDEBUG\033[0m - %s",  # debug 1
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[92mINFO\033[0m - %s",  # info 2
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[93mWARNING\033[0m - %s",  # warning 3
+        "\033[1m[IKP3db-%s]\033[0m %s - \033[91mERROR\033[0m - %s",  # error 4
         "\033[1m[IKP3db-%s]\033[0m %s - \033[91mCRITICAL\033[0m - %s",  # critical 5
     ]
 
@@ -306,8 +306,7 @@ class IKPdbConnectionHandler(object):
         See send() above for others parameters definition.
         """
         with self._connection_lock:
-            # TODO: add a parameter to remove args from messages ?
-            if True:
+            if True:  # TODO: add a parameter to remove args from messages ?
                 del obj['args']
             obj['result'] = result
             obj['commandExecStatus'] = command_exec_status
@@ -980,6 +979,11 @@ class IKPdb(object):
             if f_locals:
                 locals_vars_list = self.extract_object_properties(frame.f_globals,
                                                                   limit_size=True)
+        if self.debug_protocol == 'c9':
+            return {
+                'f_locals': locals_vars_list + globals_vars_list,
+                'f_globals': []
+            }
         return {
             'f_locals': locals_vars_list,
             'f_globals': globals_vars_list,
