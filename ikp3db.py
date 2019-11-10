@@ -45,7 +45,8 @@ __version__ = "1.5.0dev"
 # - e,E: Expression evaluation
 # - x,X: Execution
 # - f,F: Frame
-# - p,P: Path
+# - p:   Path
+# - P:   Protocol
 # - g,G: Global debugger
 #
 # Logging support the same notion of level as python logging.
@@ -122,6 +123,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
         "x": 20,
         "f": 20,
         "p": 20,
+        "P": 20,
         "g": 20
     }
 
@@ -138,13 +140,14 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
         Here are the letters and the component they activate `DEBUG` logging
         level on:
 
-            - n,N: Network
-            - b,B: Breakpoints
-            - e,E: Expression evaluation
-            - x,X: Execution
-            - f,F: Frame
-            - p,P: Path and python path manipulation
-            - g,G: Global debugger
+            - n: Network
+            - b: Breakpoints
+            - e: Expression evaluation
+            - x: Execution
+            - f: Frame
+            - p: Path and python path manipulation
+            - P: Protocol 
+            - g: Global debugger
 
         By default logging is disabled for all components.
         Any `ikpdb_log_arg` value different from the letters above (eg: '9')
@@ -163,7 +166,7 @@ class IKPdbLogger(object, metaclass=MetaIKPdbLogger):
             return
 
         IKPdbLogger.enabled = True
-        logging_configuration_string = ikpdb_log_arg.lower()
+        logging_configuration_string = ikpdb_log_arg
         for letter in logging_configuration_string:
             if letter in IKPdbLogger.DOMAINS:
                 IKPdbLogger.DOMAINS[letter] = 10
@@ -282,6 +285,7 @@ class IKPdbConnectionHandler(object):
                 payload['threads'] = threads
             if thread_ident:
                 payload['thread_ident'] = thread_ident
+            _logger.P_debug("Send: %s", payload)
             msg = self.encode(payload)
             if self._connection:
                 msg_bytes = bytearray(msg, 'utf-8')
@@ -310,6 +314,8 @@ class IKPdbConnectionHandler(object):
             obj['info_messages'] = info_messages
             obj['warning_messages'] = warning_messages
             obj['error_messages'] = error_messages
+            _logger.P_debug("Reply: %s", obj)
+
             msg_str = self.encode(obj)
             msg_bytes = bytearray(msg_str, 'utf-8')
             send_bytes_count = self._connection.sendall(msg_bytes)
@@ -393,6 +399,7 @@ class IKPdbConnectionHandler(object):
                 self.SOCKET_BUFFER_SIZE = message_length - len(self._received_data)
         self.log_received(full_message)
         obj = self.decode(full_message)
+        _logger.P_debug("Received: %s", obj)
         return obj
 
 
@@ -1329,7 +1336,6 @@ class IKPdb(object):
                                     error_messages=error_messages)
 
             elif command['cmd'] == 'getFrameVariables':
-                _logger.f_info("command=%s", command)
                 error_messages = []
                 var_frame = self.lookup_frame(frame, command['frame_id'])
                 vars_list = self.extract_frame_variables(
@@ -1640,8 +1646,7 @@ class IKPdb(object):
         """
         while True:
             obj = remote_client.receive(self)
-            command = obj["command"]
-            # TODO: ensure we always have a command if receive returns
+            command = obj.get("command")
             args = obj.get('args', {})
 
             if command == 'getBreakpoints':
@@ -1941,7 +1946,7 @@ class IKPdb(object):
                 self._command_q.put({'cmd': '_InternalQuit'})
                 return
 
-            else: # unrecognized command ; just log and ignored
+            else:  # unrecognized command ; just log and ignored
                 _logger.g_critical("Unsupported command '%s(%s)' ignored.", command, args)
 
             if IKPdbLogger.enabled:
@@ -2074,7 +2079,7 @@ def check_version():
 def main():
 
     parser = argparse.ArgumentParser(description="IKP3db %s - Inouk Python Debugger for CPython 3.6 and above." % __version__,
-                                     epilog="Copyright (c) 2016-2018 by Cyril MORISSE, Audaxis")
+                                     epilog="Copyright (c) 2017-2019 by Cyril MORISSE")
     parser.add_argument("-ik_a", "--ikpdb-address",
                         default='127.0.0.1',
                         dest="IKPDB_ADDRESS",
@@ -2137,11 +2142,13 @@ def main():
     # debugged script with all IKP3db args removed
     sys.argv = cmd_line_args.script_command_args
 
-    _logger.g_info("IKP3db %s - Inouk Python Debugger for CPython 3.6+",
-                   __version__)
+    _logger.g_info("IKP3db %s - Inouk Python Debugger for CPython 3.6+ for \"%s\"",
+                   __version__,
+                   cmd_line_args.IKPDB_DEBUG_PROTOCOL)
     _logger.g_debug("  interpreter: '%s'", sys.executable)
     _logger.g_debug("  args: %s", cmd_line_args)
-    _logger.g_debug("  starts debugging: '%s'", " ".join(sys.argv))
+    _logger.g_debug("  Debug Protocol: '%s'", cmd_line_args.IKPDB_DEBUG_PROTOCOL)
+    _logger.g_debug("  Starts debugging: '%s'", " ".join(sys.argv))
     _logger.g_debug("  CWD: '%s'", os.getcwd())
     if cmd_line_args.IKPDB_WORKING_DIRECTORY:
         _logger.g_debug("  Working Directory forced to: '%s'",
@@ -2151,7 +2158,7 @@ def main():
                         cmd_line_args.IKPDB_CLIENT_WORKING_DIRECTORY)
 
     if not sys.argv[0:]:
-        print("Error: scriptfile argument is required")
+        print("Error: scriptfile argument is required.")
         sys.exit(2)
 
     # By using argparse.REMAINDER, sys.argv reflects command line of
@@ -2249,7 +2256,7 @@ def main():
 
     except:
         traceback.print_exc()
-        _logger.g_info("Uncaught exception. Entering post mortem debugging")
+        _logger.g_info("Uncaught exception. Entering post mortem debugging...")
         pm_traceback = sys.exc_info()[2]
         while pm_traceback.tb_next:
             pm_traceback = pm_traceback.tb_next
