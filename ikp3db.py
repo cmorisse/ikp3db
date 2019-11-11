@@ -27,7 +27,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None
-__version__ = "1.5.0dev"
+__version__ = "1.5.0dev1"
 
 
 ##
