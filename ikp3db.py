@@ -1864,7 +1864,7 @@ class IKPdb(object):
                         'obj': obj,
                         'frame_id': frame_id,
                         'expression': args['expression'],
-                        'context': args['context'],
+                        'context': args.get('context'),  # vscode only
                         'disableBreak': args.get('disableBreak', False),
                         'valueFormat': args.get('valueFormat')
                     })
