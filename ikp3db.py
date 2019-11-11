@@ -948,7 +948,7 @@ class IKPdb(object):
                 'thread_name': current_thread.name
             }
             if self.debug_protocol == 'c9':
-                remote_frame.update(self.extract_frame_variables(frame, True, True))
+                remote_frame.update(self.extract_frame_variables(frame_browser, True, True))
 
             frames.append(remote_frame)
             frame_browser = frame_browser.f_back
