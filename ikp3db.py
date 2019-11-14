@@ -1063,6 +1063,11 @@ class IKPdb(object):
     def let_variable(self, frame_id, var_name, expression_value):
         """Let a frame's var with a value by building then eval a let
         expression with breakpoints disabled.
+
+        Reference:
+            https://stackoverflow.com/questions/15011674/is-it-possible-to-dereference-variable-ids
+            
+            _ctypes.PyObj_FromPtr(obj_id)
         """
         breakpoints_backup = IKBreakpoint.backup_breakpoints_state()
         IKBreakpoint.disable_all_breakpoints()
@@ -1361,14 +1366,16 @@ class IKPdb(object):
                 result = {}
                 command_exec_status = 'ok'
                 # TODO: Rework to use id now that we are in right thread context
-                err_message = self.let_variable(command['frame'],
+                err_message = self.let_variable(command['frame_id'],
                                                 command['name'],
                                                 command['value'])
                 if err_message:
                     command_exec_status = 'error'
-                    msg = "setVariable(%s=%s) failed with error: %s" % (command['name'],
-                                                                        command['value'],
-                                                                        err_message)
+                    msg = "setVariable('%s=%s', frame_id=%s) failed with error: %s"\
+                                 % (command['name'],
+                                    command['value'],
+                                    command['frame_id'],
+                                    err_message)
                     error_messages = [msg]
                     _logger.e_error(msg)
                 remote_client.reply(command['obj'],
@@ -1913,11 +1920,12 @@ class IKPdb(object):
 
             elif command == 'setVariable':
                 _logger.e_debug("setVariable(%s)", args)
+                frame_id = args.get('frame_id', args.get('frame'))
                 if self.tracing_enabled and self.status == 'stopped':
                     self._command_q.put({
                         'cmd': 'setVariable',
                         'obj': obj,
-                        'frame': args['frame'],
+                        'frame_id': frame_id,
                         'name': args['name'],  # TODO: Rework plugin to send var's id
                         'value': args['value']
                     })
