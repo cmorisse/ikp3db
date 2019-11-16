@@ -804,7 +804,7 @@ class IKPdb(object):
                 count = 0
             return count
 
-    def extract_object_properties(self, o, limit_size=False):
+    def extract_object_properties(self, o, root_dict=False):
         """Extracts all properties from an object (eg. f_locals, f_globals,
         user dict, instance ...) and returns them as an array of variables.
         """
@@ -819,14 +819,17 @@ class IKPdb(object):
             a_var_name = None
             a_var_value = None
             for a_var_name in o:
+                if not root_dict and isinstance(a_var_name, str):
+                    var_key = '"%s"' % a_var_name
+                else:
+                    var_key = a_var_name
                 a_var_value = o[a_var_name]
                 children_count = self.object_properties_count(a_var_value)
                 v_name, v_value, v_type = self.extract_name_value_type(a_var_name,
-                                                                       a_var_value,
-                                                                       limit_size=limit_size)
+                                                                       a_var_value)
                 a_var_info = {
                     'id': id(a_var_value),
-                    'name': v_name,
+                    'name': var_key,
                     'type': "%s%s" % (v_type, " [%s]" % children_count if children_count else '',),
                     'value': v_value,
                     'children_count': children_count,
@@ -842,8 +845,7 @@ class IKPdb(object):
             for idx, a_var_value in enumerate(o):
                 children_count = self.object_properties_count(a_var_value)
                 v_name, v_value, v_type = self.extract_name_value_type(idx,
-                                                                       a_var_value,
-                                                                       limit_size=limit_size)
+                                                                       a_var_value)
                 var_list.append({
                     'id': id(a_var_value),
                     'name': v_name,
@@ -872,8 +874,7 @@ class IKPdb(object):
                         children_count = self.object_properties_count(a_var_value)
                         v_name, v_value, v_type = self.extract_name_value_type(
                             a_var_name,
-                            a_var_value,
-                            limit_size=limit_size
+                            a_var_value
                         )
                         var_list.append({
                             'id': id(a_var_value),
@@ -884,11 +885,15 @@ class IKPdb(object):
                         })
         return var_list
 
-    def extract_name_value_type(self, name, value, limit_size=False):
+    def extract_name_value_type(self, name, value):
         """Extracts value of any object, eventually reduces it's size and
         returns name, truncated value and type (for str with size appended)
         """
-        MAX_STRING_LEN_TO_RETURN = 487
+        if self.debug_protocol == 'c9':
+            MAX_STRING_LEN_TO_RETURN = 487
+        else:
+            MAX_STRING_LEN_TO_RETURN = 0
+
         try:
             t_value = repr(value)
         except:
@@ -901,7 +906,7 @@ class IKPdb(object):
             r_name = repr(name)
 
         # truncate value to limit data flow between ikpdb and client
-        if len(t_value) > MAX_STRING_LEN_TO_RETURN:
+        if MAX_STRING_LEN_TO_RETURN and len(t_value) > MAX_STRING_LEN_TO_RETURN:
             r_value = "%s ... (truncated by ikpdb)" % (t_value[:MAX_STRING_LEN_TO_RETURN],)
             r_name = "%s*" % r_name  # add a visual marker to truncated var's name
         else:
@@ -971,14 +976,14 @@ class IKPdb(object):
         if hasattr(frame.f_back, 'f_back') and frame.f_back.f_back != self.frame_beginning:
             if f_locals:
                 locals_vars_list = self.extract_object_properties(frame.f_locals,
-                                                                  limit_size=True)
+                                                                  root_dict=True)
             if f_globals:
                 globals_vars_list = self.extract_object_properties(frame.f_globals,
-                                                                   limit_size=True)
+                                                                   root_dict=True)
         else:
             if f_locals:
                 locals_vars_list = self.extract_object_properties(frame.f_globals,
-                                                                  limit_size=True)
+                                                                  root_dict=True)
         if self.debug_protocol == 'c9':
             return {
                 'f_locals': locals_vars_list + globals_vars_list,
