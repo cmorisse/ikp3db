@@ -808,12 +808,6 @@ class IKPdb(object):
         """Extracts all properties from an object (eg. f_locals, f_globals,
         user dict, instance ...) and returns them as an array of variables.
         """
-        try:
-            prop_str = repr(o)[:512]
-        except:
-            prop_str = "Error while extracting value"
-
-        _logger.e_debug("extract_object_properties(%s)", prop_str)
         var_list = []
         if isinstance(o, dict):
             a_var_name = None
@@ -896,8 +890,8 @@ class IKPdb(object):
 
         try:
             t_value = repr(value)
-        except:
-            t_value = "Error while extracting value"
+        except Exception as err:
+            t_value = repr(err)
 
         # convert all var names to string
         if isinstance(name, str):
