@@ -835,7 +835,7 @@ class IKPdb(object):
             MAX_CHILDREN_MESSAGE = "Truncated by ikpdb (don't hot change me !)."
             a_var_name = None
             a_var_value = None
-            do_truncate = len(o) > MAX_CHILDREN_TO_RETURN
+            do_truncate = self.debug_protocol == 'c9' and len(o) > MAX_CHILDREN_TO_RETURN
             for idx, a_var_value in enumerate(o):
                 children_count = self.object_properties_count(a_var_value)
                 v_name, v_value, v_type = self.extract_name_value_type(idx,
@@ -883,10 +883,7 @@ class IKPdb(object):
         """Extracts value of any object, eventually reduces it's size and
         returns name, truncated value and type (for str with size appended)
         """
-        if self.debug_protocol == 'c9':
-            MAX_STRING_LEN_TO_RETURN = 487
-        else:
-            MAX_STRING_LEN_TO_RETURN = 0
+        MAX_STRING_LEN_TO_RETURN = 487
 
         try:
             t_value = repr(value)
@@ -900,7 +897,7 @@ class IKPdb(object):
             r_name = repr(name)
 
         # truncate value to limit data flow between ikpdb and client
-        if MAX_STRING_LEN_TO_RETURN and len(t_value) > MAX_STRING_LEN_TO_RETURN:
+        if self.debug_protocol == 'c9' and len(t_value) > MAX_STRING_LEN_TO_RETURN:
             r_value = "%s ... (truncated by ikpdb)" % (t_value[:MAX_STRING_LEN_TO_RETURN],)
             r_name = "%s*" % r_name  # add a visual marker to truncated var's name
         else:
