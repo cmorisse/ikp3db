@@ -9,7 +9,7 @@ import sys
 from setuptools import setup, find_packages, Extension
 
 name = 'ikp3db'
-version = '1.5.0dev2'
+version = '1.5.0dev3'
 
 if sys.version_info[:2] < (3, 6):
     sys.exit('Sorry, IKPdb only supports Python 3.6 and above.')
@@ -30,7 +30,8 @@ setup(
     license='MIT',
     author='Cyril MORISSE',
     author_email='cmorisse@boxes3.net',
-    description="A hackable CPython 3.6+ remote debugger designed for the Web and online IDE integration. Fork of IKPdb.",
+    description="A hackable CPython 3.6+ remote debugger designed for the Web and"
+                " online IDE integration. Fork of IKPdb.",
     long_description=long_description,
     keywords="debugger debug remote tcp",
     include_package_data=True,
