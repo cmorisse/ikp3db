@@ -16,7 +16,6 @@ import types
 import inspect
 import threading
 import queue
-import types
 import argparse
 import datetime
 import ctypes
@@ -701,7 +700,10 @@ class IKPdb(object):
         """Translate a (possibly incomplete) file or module name received from debugging client
         into an absolute file name.
         """
-        _logger.p_debug("normalize_path_in(%s) with os.getcwd()=>%s", client_file_name, os.getcwd())
+        _logger.p_debug("normalize_path_in(%s) with os.getcwd()=%s and CLIENT_CWD=%s",
+                        client_file_name, 
+                        os.getcwd(),
+                        self._CLIENT_CWD)
 
         # remove client CWD from file_path
         if client_file_name.startswith(self._CLIENT_CWD):
@@ -730,7 +732,7 @@ class IKPdb(object):
         root, ext = os.path.splitext(file_name)
         if ext == '':
             f = file_name + '.py'
-        if os.path.isabs(f):
+        if os.path.isabs(f) and os.path.exists(f):
             _logger.p_debug("  => found absolute path after adding .py extension: '%s'", f)
             return f
 
