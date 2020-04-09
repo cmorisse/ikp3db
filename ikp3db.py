@@ -26,7 +26,7 @@ import iksettrace3
 
 # For now ikpdb is a singleton
 ikpdb = None
-__version__ = "1.5.0dev3"
+__version__ = "1.5.0dev4"
 
 
 ##
@@ -966,7 +966,7 @@ class IKPdb(object):
     def extract_frame_variables(self, frame, f_locals, f_globals):
         locals_vars_list = []
         globals_vars_list = []
-        if hasattr(frame.f_back, 'f_back') and frame.f_back.f_back != self.frame_beginning:
+        if frame and hasattr(frame.f_back, 'f_back') and hasattr(frame.f_back, 'f_back') and frame.f_back.f_back != self.frame_beginning:
             if f_locals:
                 locals_vars_list = self.extract_object_properties(frame.f_locals,
                                                                   root_dict=True)
@@ -974,7 +974,7 @@ class IKPdb(object):
                 globals_vars_list = self.extract_object_properties(frame.f_globals,
                                                                    root_dict=True)
         else:
-            if f_locals:
+            if f_globals:
                 locals_vars_list = self.extract_object_properties(frame.f_globals,
                                                                   root_dict=True)
         if self.debug_protocol == 'c9':
