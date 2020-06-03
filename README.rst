@@ -68,7 +68,7 @@ https://ikpdb.readthedocs.io/
 Requirements
 ------------
 
-CPython 3.6.x
+Ikp3db supports all CPython versions starting from 3.6
 
 A C compiler (eg. python-dev Debian package, xcode tools on macOS).
 
