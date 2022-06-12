@@ -875,7 +875,7 @@ class IKPdb(object):
         """ dumps frames chain in a representation suitable for serialization 
            and remote (debugger) client usage.
         """
-        current_thread = threading.currentThread()
+        current_thread = threading.current_thread()
         frames = []
         frame_browser = frame
         
@@ -1183,7 +1183,7 @@ class IKPdb(object):
         _logger.f_debug("user_line() with " 
                         "threadName=%s, frame=%s, frame.f_code=%s, self.mainpyfile=%s,"
                         "self.should_break_here()=%s, self.should_stop_here()=%s\n",
-                         threading.currentThread().name,
+                         threading.current_thread().name,
                          hex(id(frame)),
                          frame.f_code,
                          self.mainpyfile,
@@ -1192,10 +1192,10 @@ class IKPdb(object):
 
         # next lines allow to focus debugging on only one thread
         if self.debugged_thread_ident is None:
-            self.debugged_thread_ident = threading.currentThread().ident
-            self.debugged_thread_name = threading.currentThread().name
+            self.debugged_thread_ident = threading.current_thread().ident
+            self.debugged_thread_name = threading.current_thread().name
         else:
-            if threading.currentThread().ident != self.debugged_thread_ident:
+            if threading.current_thread().ident != self.debugged_thread_ident:
                 return
 
         # Acquire Breakpoint Lock before sending break command to remote client
