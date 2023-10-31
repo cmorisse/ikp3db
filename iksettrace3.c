@@ -98,6 +98,20 @@ trace_trampoline(PyObject *self, PyFrameObject *frame,
  * iksettrace3 'real' functions
  */
 
+/*
+* Based on https://docs.python.org/3/whatsnew/3.11.html#whatsnew311-c-api-porting
+*/
+static inline void
+IK_UseTracing(PyThreadState *tstate, int use_tracing)
+{
+    tstate->tracing += use_tracing ? 1 : -1;
+#if PY_VERSION_HEX >= 0x030A00A1
+    tstate->cframe->use_tracing = use_tracing ? 255 : 0;
+#else
+    tstate->use_tracing = use_tracing;
+#endif
+}
+
 void
 IK_SetTrace(Py_tracefunc func, PyObject *arg)
 {
@@ -114,18 +128,18 @@ IK_SetTrace(Py_tracefunc func, PyObject *arg)
             loopThreadState->c_tracefunc = NULL;
             loopThreadState->c_traceobj = NULL;
             /* Must make sure that profiling is not ignored if 'temp' is freed */
-            loopThreadState->use_tracing = loopThreadState->c_profilefunc != NULL;
+            IK_UseTracing(loopThreadState, loopThreadState->c_profilefunc != NULL);
             Py_XDECREF(temp);
             loopThreadState->c_tracefunc = func;
             loopThreadState->c_traceobj = arg;
             /* Flag that tracing or profiling is turned on */
-            loopThreadState->use_tracing = ((func != NULL) || (loopThreadState->c_profilefunc != NULL));
+            IK_UseTracing(loopThreadState, (func != NULL) || (loopThreadState->c_profilefunc != NULL));
         } else {
             PyObject *temp = loopThreadState->c_traceobj;
             loopThreadState->c_tracefunc = NULL;
             loopThreadState->c_traceobj = NULL;
             /* Must make sure that profiling is not ignored if 'temp' is freed */
-            loopThreadState->use_tracing = loopThreadState->c_profilefunc != NULL;
+            IK_UseTracing(loopThreadState, loopThreadState->c_profilefunc != NULL);
             Py_XDECREF(temp);
 
         };
