@@ -68,7 +68,7 @@ https://ikpdb.readthedocs.io/
 Requirements
 ------------
 
-CPython 3.6.x
+CPython 3.6.x (CPython 3.10.x support added on 10/2023)
 
 A C compiler (eg. python-dev Debian package, xcode tools on macOS).
 
