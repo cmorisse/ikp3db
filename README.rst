@@ -68,7 +68,10 @@ https://ikpdb.readthedocs.io/
 Requirements
 ------------
 
-CPython 3.6.x (CPython 3.10.x support added on 10/2023)
+CPython 3.6.x to 3.10.x
+CPython 3.11+ is not supported 
+   (See: https://docs.python.org/3/whatsnew/3.11.html 
+   "PyFrameObject has been removed from the public C API")
 
 A C compiler (eg. python-dev Debian package, xcode tools on macOS).
 
@@ -90,4 +93,3 @@ Issues
 ------
 
 Issues are managed using Github's Issues Tracker.
-
